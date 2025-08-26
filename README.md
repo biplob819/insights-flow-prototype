@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Insights Flow - Dashboard Prototype
+
+A modern, responsive dashboard interface built with Next.js, TypeScript, and Tailwind CSS.
+
+## Features
+
+- **Modern Dashboard Interface**: Clean and intuitive design inspired by popular analytics platforms
+- **Responsive Design**: Fully responsive layout that works on desktop, tablet, and mobile devices
+- **Dark Sidebar Navigation**: Professional sidebar with navigation items and organization selector
+- **Dashboard Templates**: Pre-built dashboard templates for various use cases:
+  - Sales Pipeline
+  - Payroll Dashboard
+  - E-commerce Analytics
+  - Marketing KPIs
+  - Executive Overview
+- **Search Functionality**: Global search bar for finding dashboards
+- **User Profile**: Admin profile section with notifications
+
+## Tech Stack
+
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first CSS framework
+- **Lucide React**: Modern icon library
+- **Responsive Design**: Mobile-first approach
 
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000) to view the dashboard.
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js app directory
+│   ├── layout.tsx         # Root layout component
+│   ├── page.tsx           # Home page
+│   └── globals.css        # Global styles
+└── components/            # Reusable components
+    ├── Sidebar.tsx        # Navigation sidebar
+    ├── Header.tsx         # Top header with search
+    ├── DashboardGrid.tsx  # Dashboard templates grid
+    └── DashboardCard.tsx  # Individual template cards
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Sidebar
+- Navigation menu with icons
+- Active state management
+- Organization selector
+- Responsive collapse on mobile
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Header
+- Welcome message
+- Global search functionality
+- Notifications bell
+- User profile section
+- Mobile menu button
 
-## Learn More
+### Dashboard Grid
+- Responsive grid layout
+- Template cards with hover effects
+- "Create Dashboard" action card
+- Template categories with appropriate icons
 
-To learn more about Next.js, take a look at the following resources:
+### Dashboard Cards
+- Consistent design pattern
+- Template labels
+- Icon integration
+- Click handlers for future functionality
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Responsive Design
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The dashboard is built with a mobile-first approach:
+- **Mobile**: Single column layout, collapsible sidebar
+- **Tablet**: Two-column grid, condensed sidebar
+- **Desktop**: Three-column grid, full sidebar
 
-## Deploy on Vercel
+## Future Enhancements
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Mobile sidebar toggle functionality
+- Dashboard creation workflow
+- Template selection and customization
+- User authentication and profiles
+- Real dashboard data integration
+- Advanced search and filtering
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build
+
+To build the project for production:
+
+```bash
+npm run build
+```
+
+The build is optimized and ready for deployment.
