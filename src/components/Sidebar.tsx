@@ -12,7 +12,11 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Plus
+  Plus,
+  Settings,
+  Building,
+  User,
+  ChevronUp
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
@@ -23,6 +27,16 @@ const navigationItems = [
   { name: 'Datasets', icon: Database, href: '/datasets' },
   { name: 'Analytics', icon: BarChart3, href: '/analytics' },
   { name: 'Workflows', icon: Workflow, href: '/workflows' },
+  { 
+    name: 'Settings', 
+    icon: Settings, 
+    href: '#',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'Organization Settings', icon: Building, href: '/settings/organization' },
+      { name: 'User Settings', icon: User, href: '/settings/user' },
+    ]
+  },
   { name: 'Docs', icon: FileText, href: '/docs' },
   { name: 'Support', icon: HelpCircle, href: '/support' },
 ];
@@ -31,7 +45,15 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleSubmenu = (menuName: string) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuName]: !prev[menuName]
+    }));
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -78,30 +100,104 @@ export default function Sidebar() {
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+            const hasSubmenu = 'hasSubmenu' in item && item.hasSubmenu;
+            const isExpanded = expandedMenus[item.name] || false;
+            
+            // For items with submenu, check if any submenu item is active
+            const hasActiveSubmenu = hasSubmenu && item.submenu && item.submenu.some(subItem => pathname === subItem.href);
+            
+            // Keep submenu expanded if any submenu item is active or manually expanded
+            const shouldShowSubmenu = isExpanded || hasActiveSubmenu;
+            
             return (
               <li key={item.name}>
-                <a
-                  href={item.href}
-                  className={`flex items-center rounded-lg text-sm font-medium transition-colors relative group ${
-                    isCollapsed ? 'px-4 py-4 justify-center' : 'px-4 py-3'
-                  } ${
-                    isActive
-                      ? 'bg-cyan-400 text-slate-900'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  <Icon className={`w-5 h-5 ${isCollapsed ? 'flex-shrink-0' : 'mr-3'}`} />
-                  {!isCollapsed && item.name}
-                  
-                  {/* Custom Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 border border-slate-700 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
-                      {item.name}
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45"></div>
-                    </div>
-                  )}
-                </a>
+                {hasSubmenu ? (
+                  <div>
+                    {/* Main menu item with submenu */}
+                    <button
+                      onClick={() => !isCollapsed && toggleSubmenu(item.name)}
+                      className={`flex items-center w-full rounded-lg text-sm font-medium transition-colors relative group ${
+                        isCollapsed ? 'px-4 py-4 justify-center' : 'px-4 py-3 justify-between'
+                      } ${
+                        hasActiveSubmenu
+                          ? 'bg-cyan-400 text-slate-900'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                      title={isCollapsed ? item.name : undefined}
+                    >
+                      <div className="flex items-center">
+                        <Icon className={`w-5 h-5 ${isCollapsed ? 'flex-shrink-0' : 'mr-3'}`} />
+                        {!isCollapsed && item.name}
+                      </div>
+                      {!isCollapsed && (
+                        <div className="ml-auto">
+                          {shouldShowSubmenu ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Custom Tooltip for collapsed state */}
+                      {isCollapsed && (
+                        <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 border border-slate-700 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
+                          {item.name}
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45"></div>
+                        </div>
+                      )}
+                    </button>
+                    
+                    {/* Submenu items */}
+                    {!isCollapsed && shouldShowSubmenu && item.submenu && (
+                      <ul className="mt-2 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          const isSubActive = pathname === subItem.href;
+                          return (
+                            <li key={subItem.name}>
+                              <a
+                                href={subItem.href}
+                                className={`flex items-center px-4 py-2 ml-6 rounded-lg text-sm font-medium transition-colors ${
+                                  isSubActive
+                                    ? 'bg-cyan-400 text-slate-900'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                }`}
+                              >
+                                <SubIcon className="w-4 h-4 mr-3" />
+                                {subItem.name}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  /* Regular menu item */
+                  <a
+                    href={item.href}
+                    className={`flex items-center rounded-lg text-sm font-medium transition-colors relative group ${
+                      isCollapsed ? 'px-4 py-4 justify-center' : 'px-4 py-3'
+                    } ${
+                      isActive
+                        ? 'bg-cyan-400 text-slate-900'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    <Icon className={`w-5 h-5 ${isCollapsed ? 'flex-shrink-0' : 'mr-3'}`} />
+                    {!isCollapsed && item.name}
+                    
+                    {/* Custom Tooltip for collapsed state */}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 border border-slate-700 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
+                        {item.name}
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45"></div>
+                      </div>
+                    )}
+                  </a>
+                )}
               </li>
             );
           })}

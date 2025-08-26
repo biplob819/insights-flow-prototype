@@ -53,3 +53,22 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Cursor pointer for all clickable elements */
+button,
+a,
+[role="button"],
+[onclick],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select,
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed !important;
+}
