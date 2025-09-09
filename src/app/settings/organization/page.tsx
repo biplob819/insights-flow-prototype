@@ -5,15 +5,9 @@ import {
   Menu, 
   Building, 
   Users, 
-  Shield, 
   CreditCard, 
-  Globe, 
-  Bell,
-  Save,
-  Upload,
   Plus,
   X,
-  Toggle,
   Edit3,
   Check,
   Trash2
@@ -27,9 +21,9 @@ export default function OrganizationSettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('Viewer');
   const [newOrgName, setNewOrgName] = useState('');
-  const [editingOrgId, setEditingOrgId] = useState(null);
+  const [editingOrgId, setEditingOrgId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
-  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, orgId: null, orgName: '' });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; orgId: number | null; orgName: string; error?: string }>({ isOpen: false, orgId: null, orgName: '' });
   
   const [organizations, setOrganizations] = useState([
     { id: 1, name: 'Neworg', role: 'Owner', isDefault: true, isCurrentOrg: true },
@@ -37,7 +31,7 @@ export default function OrganizationSettingsPage() {
     { id: 3, name: 'Marketing Agency', role: 'Designer', isDefault: false, isCurrentOrg: false }
   ]);
 
-  const handleSetDefault = (orgId) => {
+  const handleSetDefault = (orgId: number) => {
     setOrganizations(orgs => 
       orgs.map(org => ({ 
         ...org, 
@@ -46,12 +40,12 @@ export default function OrganizationSettingsPage() {
     );
   };
 
-  const handleEditOrg = (orgId, currentName) => {
+  const handleEditOrg = (orgId: number, currentName: string) => {
     setEditingOrgId(orgId);
     setEditingName(currentName);
   };
 
-  const handleSaveEdit = (orgId) => {
+  const handleSaveEdit = (orgId: number) => {
     if (editingName.trim()) {
       setOrganizations(orgs => 
         orgs.map(org => 
@@ -83,7 +77,7 @@ export default function OrganizationSettingsPage() {
     }
   };
 
-  const handleDeleteOrg = (orgId) => {
+  const handleDeleteOrg = (orgId: number) => {
     if (organizations.length <= 1) {
       setDeleteConfirmation({ 
         isOpen: true, 
@@ -110,7 +104,7 @@ export default function OrganizationSettingsPage() {
       isOpen: true, 
       orgId: orgId, 
       orgName: orgToDelete?.name || '',
-      error: null
+      error: undefined
     });
   };
 
@@ -424,7 +418,7 @@ export default function OrganizationSettingsPage() {
                         {/* Subscription */}
                         <div>
                           <h2 className="text-xl font-semibold text-slate-900 mb-2">Subscription</h2>
-                          <p className="text-slate-600 text-sm mb-6 lg:mb-8">This organization doesn't have any plan at the moment</p>
+                          <p className="text-slate-600 text-sm mb-6 lg:mb-8">This organization doesn&apos;t have any plan at the moment</p>
 
                           {/* Pricing Plans */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 lg:gap-6 max-w-full">
@@ -533,7 +527,7 @@ export default function OrganizationSettingsPage() {
                             {/* Enterprise Plan */}
                             <div className="bg-slate-50 rounded-lg p-4 lg:p-6 border border-slate-200 min-h-0 flex flex-col">
                               <h3 className="text-lg font-semibold text-slate-900 mb-2">Enterprise</h3>
-                              <div className="text-xl lg:text-2xl font-bold text-slate-900 mb-4 lg:mb-6">Let's chat!</div>
+                              <div className="text-xl lg:text-2xl font-bold text-slate-900 mb-4 lg:mb-6">Let&apos;s chat!</div>
                               
                               <ul className="space-y-3">
                                 <li className="flex items-center text-sm text-slate-600">
@@ -606,7 +600,7 @@ export default function OrganizationSettingsPage() {
 
       {/* Invite User Modal */}
       {isInviteModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
+        <div className="modal-overlay">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-semibold text-slate-900">Invite Team Member</h3>
@@ -669,7 +663,7 @@ export default function OrganizationSettingsPage() {
 
       {/* Create Organization Modal */}
       {isCreateOrgModalOpen && (
-        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
+        <div className="modal-overlay">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-semibold text-slate-900">Create New Organization</h3>
@@ -722,7 +716,7 @@ export default function OrganizationSettingsPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.isOpen && (
-        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
+        <div className="modal-overlay">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center mb-4">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-4">
@@ -741,7 +735,7 @@ export default function OrganizationSettingsPage() {
               ) : (
                 <>
                   <p className="text-sm text-slate-600 mb-3">
-                    Are you sure you want to delete <span className="font-semibold text-slate-900">"{deleteConfirmation.orgName}"</span>?
+                    Are you sure you want to delete <span className="font-semibold text-slate-900">&quot;{deleteConfirmation.orgName}&quot;</span>?
                   </p>
                   <p className="text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
                     <strong>Warning:</strong> This action cannot be undone. All data associated with this organization will be permanently removed.

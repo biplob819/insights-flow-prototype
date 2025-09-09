@@ -4,22 +4,13 @@ import Sidebar from '@/components/Sidebar';
 import { 
   Menu, 
   User, 
-  Lock, 
-  Bell, 
-  Palette, 
-  Globe, 
-  Shield,
-  Save,
-  Upload,
-  Eye,
-  EyeOff
+  Lock,
+  Upload
 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function UserSettingsPage() {
   const [activeTab, setActiveTab] = useState('account');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const tabs = [
     { id: 'account', name: 'Account Settings', icon: User },

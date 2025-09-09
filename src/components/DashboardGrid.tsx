@@ -8,6 +8,7 @@ import {
   Target, 
   PieChart 
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import DashboardCard from './DashboardCard';
 
 const dashboardTemplates = [
@@ -69,9 +70,15 @@ const dashboardTemplates = [
 ];
 
 export default function DashboardGrid() {
+  const router = useRouter();
+  
   const handleCardClick = (templateId: string) => {
-    console.log(`Clicked on template: ${templateId}`);
-    // Handle card click logic here
+    if (templateId === 'create') {
+      router.push('/dashboard/create');
+    } else {
+      console.log(`Clicked on template: ${templateId}`);
+      // Handle other template clicks here
+    }
   };
 
   return (

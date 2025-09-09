@@ -1,7 +1,6 @@
 'use client';
 
 import { 
-  Home, 
   Plug, 
   Database, 
   BarChart3, 
@@ -16,15 +15,25 @@ import {
   Settings,
   Building,
   User,
-  ChevronUp
+  ChevronUp,
+  Eye
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 
 const navigationItems = [
-  { name: 'Home', icon: Home, href: '/' },
-  { name: 'Connect', icon: Plug, href: '/connect' },
-  { name: 'Datasets', icon: Database, href: '/datasets' },
+  { name: 'Create', icon: Plus, href: '/' },
+  { 
+    name: 'Modeling', 
+    icon: Plug, 
+    href: '/connect',
+    hasSubmenu: true,
+    submenu: [
+      { name: 'Data Catalog', icon: Plug, href: '/connect' },
+      { name: 'Data Modeling', icon: Database, href: '/connect/data-modeling' },
+    ]
+  },
+  { name: 'Views', icon: Eye, href: '/connect/datasets' },
   { name: 'Analytics', icon: BarChart3, href: '/analytics' },
   { name: 'Workflows', icon: Workflow, href: '/workflows' },
   { 
