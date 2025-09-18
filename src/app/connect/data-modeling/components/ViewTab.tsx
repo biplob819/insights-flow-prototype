@@ -192,16 +192,68 @@ export default function ViewTab() {
     setDragOverColumn(null);
   };
 
+  // Safe expression evaluator to replace eval()
+  const safeEvaluate = (expression: string): number | boolean => {
+    // Remove whitespace
+    expression = expression.trim();
+    
+    // Handle basic arithmetic and comparison operations
+    const numberRegex = /^-?\d+(\.\d+)?$/;
+    
+    // If it's just a number, return it
+    if (numberRegex.test(expression)) {
+      return parseFloat(expression);
+    }
+    
+    // Handle basic comparisons
+    const comparisonMatch = expression.match(/^(-?\d+(?:\.\d+)?)\s*([><=!]+)\s*(-?\d+(?:\.\d+)?)$/);
+    if (comparisonMatch) {
+      const [, left, operator, right] = comparisonMatch;
+      const leftNum = parseFloat(left);
+      const rightNum = parseFloat(right);
+      
+      switch (operator) {
+        case '>': return leftNum > rightNum;
+        case '<': return leftNum < rightNum;
+        case '>=': return leftNum >= rightNum;
+        case '<=': return leftNum <= rightNum;
+        case '==': case '=': return leftNum === rightNum;
+        case '!=': return leftNum !== rightNum;
+        default: return false;
+      }
+    }
+    
+    // Handle basic arithmetic
+    const arithmeticMatch = expression.match(/^(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/);
+    if (arithmeticMatch) {
+      const [, left, operator, right] = arithmeticMatch;
+      const leftNum = parseFloat(left);
+      const rightNum = parseFloat(right);
+      
+      switch (operator) {
+        case '+': return leftNum + rightNum;
+        case '-': return leftNum - rightNum;
+        case '*': return leftNum * rightNum;
+        case '/': return rightNum !== 0 ? leftNum / rightNum : 0;
+        default: return 0;
+      }
+    }
+    
+    return 0;
+  };
+
   // Calculate formula values
   const calculateFormula = (formula: string, row: Row): string | number => {
     try {
-      // Simple formula parser - in production, use a proper expression parser
+      // Simple formula parser - safe replacement for eval
       let expression = formula;
       
       // Replace column references with actual values
       columns.forEach(col => {
         const regex = new RegExp(`\\[${col.name}\\]`, 'g');
-        expression = expression.replace(regex, row[col.name]?.toString() || '0');
+        const value = row[col.name];
+        const numValue = typeof value === 'number' ? value.toString() : (parseFloat(value?.toString() || '0') || 0).toString();
+        expression = expression.replace(regex, numValue);
       });
       
       // Handle IF statements
@@ -209,18 +261,24 @@ export default function ViewTab() {
         (match, condition, trueVal, nestedCondition, nestedTrueVal, nestedFalseVal, falseVal) => {
           if (nestedCondition) {
             // Nested IF
-            const outerResult = eval(condition);
+            const outerResult = safeEvaluate(condition);
             if (outerResult) return `"${trueVal}"`;
-            const innerResult = eval(nestedCondition);
+            const innerResult = safeEvaluate(nestedCondition);
             return innerResult ? `"${nestedTrueVal}"` : `"${nestedFalseVal}"`;
           } else {
-            const result = eval(condition);
+            const result = safeEvaluate(condition);
             return result ? `"${trueVal}"` : `"${falseVal || ''}"`;
           }
         });
       
-      const result = eval(expression);
-      return typeof result === 'string' ? result.replace(/"/g, '') : result;
+      // If the expression is wrapped in quotes, return as string
+      if (expression.startsWith('"') && expression.endsWith('"')) {
+        return expression.slice(1, -1);
+      }
+      
+      // Try to evaluate as a safe arithmetic expression
+      const result = safeEvaluate(expression);
+      return typeof result === 'boolean' ? (result ? 'TRUE' : 'FALSE') : result;
     } catch {
       return '#ERROR';
     }

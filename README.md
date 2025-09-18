@@ -13,6 +13,13 @@ A modern, responsive dashboard interface built with Next.js, TypeScript, and Tai
   - E-commerce Analytics
   - Marketing KPIs
   - Executive Overview
+- **Advanced Dashboard Builder**: Interactive dashboard creation with:
+  - Floating +Add button for easy chart addition
+  - Modern chart selection modal with categorized chart types
+  - Drag & drop grid layout with auto-resize
+  - 18+ chart types including Bar, Line, Pie, Area, Scatter, KPI, Combo, Box, Sankey, Funnel, Gauge, Waterfall, and Maps
+  - Blank chart state until data sources are configured
+  - Real-time property panel for chart configuration
 - **Search Functionality**: Global search bar for finding dashboards
 - **User Profile**: Admin profile section with notifications
 

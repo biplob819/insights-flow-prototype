@@ -425,9 +425,9 @@ export default function SQLQueryBuilder({ isOpen, onClose, initialQuery = '', ta
                     </thead>
                     <tbody>
                       {results.map((row, index) => (
-                        <tr key={index} className="hover:bg-slate-50">
+                        <tr key={`row-${index}`} className="hover:bg-slate-50">
                           {Object.values(row).map((value, i) => (
-                            <td key={i} className="border border-slate-300 px-4 py-2 text-slate-900">
+                            <td key={`col-${i}`} className="border border-slate-300 px-4 py-2 text-slate-900">
                               {String(value)}
                             </td>
                           ))}

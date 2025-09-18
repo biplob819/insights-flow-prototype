@@ -70,7 +70,7 @@ export default function PropertyPanel({ widget, onUpdateWidget, onClose }: Prope
           </div>
           
           <div className="space-y-4">
-            {widget.type !== 'text' && widget.type !== 'kpi' && (
+            {(widget.type as string) !== 'text' && (widget.type as string) !== 'kpi' && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

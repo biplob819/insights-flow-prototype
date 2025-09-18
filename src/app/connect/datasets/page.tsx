@@ -205,7 +205,7 @@ export default function ViewsPage() {
   const confirmDelete = () => {
     if (showDeleteModal) {
       // Here you would typically call an API to delete the view
-      console.log('Deleting view:', showDeleteModal);
+      // TODO: Implement actual delete functionality
       setShowDeleteModal(null);
     }
   };
@@ -690,9 +690,9 @@ export default function ViewsPage() {
                         ['South', 'Dell', '987654', '2023-02', '2', '$1,599.98'],
                         ['Midwest', 'Sony', '456789', '2023-01', '4', '$799.96']
                       ].map((row, index) => (
-                        <tr key={index} className="border-b hover:bg-slate-50">
+                        <tr key={`data-row-${index}`} className="border-b hover:bg-slate-50">
                           {row.map((cell, cellIndex) => (
-                            <td key={cellIndex} className="px-4 py-3 text-sm text-slate-900">
+                            <td key={`data-cell-${cellIndex}`} className="px-4 py-3 text-sm text-slate-900">
                               {cell}
                             </td>
                           ))}
