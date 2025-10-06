@@ -12,6 +12,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -19,11 +26,76 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Scale all direct children of body instead of body itself */
+body > * {
+  transform: scale(0.75);
+  transform-origin: top left;
+  width: 133.33%;
+  height: 133.33%;
+}
+
+/* Ensure flex layouts work properly with scaling */
+.flex.h-screen {
+  height: 133.33vh !important;
+}
+
+/* Remove any default margins/padding that might cause gaps */
+* {
+  box-sizing: border-box;
+}
+
+/* Perfect fit layout - no gaps */
+.app-layout {
+  display: flex;
+  height: 133.33vh;
+  width: 133.33vw;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+/* Sidebar styling to eliminate gaps */
+.sidebar-no-gap {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Main content area styling */
+.main-content-no-gap {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove any spacing from headers and main areas */
+.header-no-gap {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  flex-shrink: 0;
+}
+
+.content-area-no-gap {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
 }
 
 /* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -32,7 +104,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -56,8 +128,8 @@ body {
 }
 
 .scrollbar-invisible::-webkit-scrollbar {
-  width: 2px;
-  height: 2px;
+  width: 1px;
+  height: 1px;
 }
 
 .scrollbar-invisible::-webkit-scrollbar-track {
@@ -79,8 +151,8 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -89,7 +161,7 @@ body {
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: rgba(203, 213, 225, 0.5);
-  border-radius: 2px;
+  border-radius: 1px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
@@ -217,13 +289,13 @@ select:disabled {
 
 .react-grid-item > .react-resizable-handle {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   bottom: 0;
   right: 0;
   background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNiIgaGVpZ2h0PSI2IiB2aWV3Qm94PSIwIDAgNiA2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9IiM0QTVBNjgiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PGNpcmNsZSBjeD0iNSIgY3k9IjUiIHI9IjEiLz48Y2lyY2xlIGN4PSIzIiBjeT0iNSIgcj0iMSIvPjxjaXJjbGUgY3g9IjUiIGN5PSIzIiByPSIxIi8+PC9nPjwvc3ZnPg==') no-repeat;
   background-position: bottom right;
-  padding: 0 3px 3px 0;
+  padding: 0 2px 2px 0;
   background-repeat: no-repeat;
   background-origin: content-box;
   box-sizing: border-box;
@@ -233,10 +305,10 @@ select:disabled {
 .react-grid-item > .react-resizable-handle::after {
   content: "";
   position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 5px;
-  height: 5px;
-  border-right: 2px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+  right: 2px;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-right: 1px solid rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
 }

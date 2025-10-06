@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Table, Plus, Link, Trash2, Settings, ChevronDown, ChevronRight, Key, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Save, Database, Search, X, Play } from 'lucide-react';
+import { Table, Plus, Link, Trash2, Settings, ChevronDown, ChevronRight, Key, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Save, Database, Search, X, Play, ArrowRight } from 'lucide-react';
 import { getDataTypeIcon } from '../utils/dataTypeIcons';
 
 interface Column {
@@ -50,104 +50,8 @@ interface ConnectionPoint {
 }
 
 export default function LogicalDataModel() {
-  const [tables, setTables] = useState<TableNode[]>([
-    {
-      id: '1',
-      name: 'customers',
-      x: 100,
-      y: 100,
-      expanded: true,
-      columns: [
-        { name: 'id', type: 'Number', nullable: false, primaryKey: true, description: 'Unique customer identifier' },
-        { name: 'first_name', type: 'Text', nullable: false, description: 'Customer first name' },
-        { name: 'last_name', type: 'Text', nullable: false, description: 'Customer last name' },
-        { name: 'email', type: 'Text', nullable: false, description: 'Customer email address' },
-        { name: 'phone', type: 'Text', nullable: true, description: 'Customer phone number' },
-        { name: 'created_at', type: 'Date', nullable: false, description: 'Account creation timestamp' },
-        { name: 'is_active', type: 'Logical', nullable: false, description: 'Account status flag' },
-      ]
-    },
-    {
-      id: '2',
-      name: 'orders',
-      x: 450,
-      y: 100,
-      expanded: true,
-      columns: [
-        { name: 'id', type: 'Number', nullable: false, primaryKey: true },
-        { name: 'customer_id', type: 'Number', nullable: false, foreignKey: true },
-        { name: 'order_date', type: 'Date', nullable: false },
-        { name: 'total_amount', type: 'Number', nullable: false },
-        { name: 'status', type: 'Text', nullable: false },
-        { name: 'metadata', type: 'Variant', nullable: true },
-      ]
-    },
-    {
-      id: '3',
-      name: 'products',
-      x: 100,
-      y: 400,
-      expanded: true,
-      columns: [
-        { name: 'id', type: 'Number', nullable: false, primaryKey: true },
-        { name: 'name', type: 'Text', nullable: false },
-        { name: 'description', type: 'Text', nullable: true },
-        { name: 'price', type: 'Number', nullable: false },
-        { name: 'category_id', type: 'Number', nullable: false, foreignKey: true },
-        { name: 'location', type: 'Geography', nullable: true },
-      ]
-    },
-    {
-      id: '4',
-      name: 'order_items',
-      x: 450,
-      y: 400,
-      expanded: true,
-      columns: [
-        { name: 'id', type: 'Number', nullable: false, primaryKey: true },
-        { name: 'order_id', type: 'Number', nullable: false, foreignKey: true },
-        { name: 'product_id', type: 'Number', nullable: false, foreignKey: true },
-        { name: 'quantity', type: 'Number', nullable: false },
-        { name: 'unit_price', type: 'Number', nullable: false },
-      ]
-    }
-  ]);
-
-  const [relationships, setRelationships] = useState<Relationship[]>([
-    {
-      id: '1',
-      fromTable: 'customers',
-      fromColumn: 'id',
-      toTable: 'orders',
-      toColumn: 'customer_id',
-      type: 'left',
-      joinType: 'one-to-many',
-      name: 'Customer Orders',
-      conditions: [{ id: '1', leftColumn: 'id', operator: '=', rightColumn: 'customer_id' }]
-    },
-    {
-      id: '2',
-      fromTable: 'orders',
-      fromColumn: 'id',
-      toTable: 'order_items',
-      toColumn: 'order_id',
-      type: 'left',
-      joinType: 'one-to-many',
-      name: 'Order Items',
-      conditions: [{ id: '2', leftColumn: 'id', operator: '=', rightColumn: 'order_id' }]
-    },
-    {
-      id: '3',
-      fromTable: 'products',
-      fromColumn: 'id',
-      toTable: 'order_items',
-      toColumn: 'product_id',
-      type: 'left',
-      joinType: 'one-to-many',
-      name: 'Product Orders',
-      conditions: [{ id: '3', leftColumn: 'id', operator: '=', rightColumn: 'product_id' }]
-    }
-  ]);
+  const [tables, setTables] = useState<TableNode[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
 
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [draggedTable, setDraggedTable] = useState<string | null>(null);
@@ -167,6 +71,9 @@ export default function LogicalDataModel() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [showTableSettings, setShowTableSettings] = useState<string | null>(null);
+  const [selectedTablesForAdd, setSelectedTablesForAdd] = useState<string[]>([]);
+  const [showSQL, setShowSQL] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -263,6 +170,8 @@ export default function LogicalDataModel() {
     } else if (e.button === 0 && e.target === e.currentTarget) {
       // Clear selection when clicking on empty canvas
       setSelectedTables([]);
+      // Close any open settings menus
+      setShowTableSettings(null);
     }
   };
 
@@ -292,6 +201,81 @@ export default function LogicalDataModel() {
   const resetView = () => {
     setZoom(1);
     setPanOffset({ x: 0, y: 0 });
+  };
+
+  const removeTable = (tableId: string) => {
+    // Remove the table
+    setTables(prev => prev.filter(table => table.id !== tableId));
+    
+    // Remove any relationships involving this table
+    const tableToRemove = tables.find(t => t.id === tableId);
+    if (tableToRemove) {
+      setRelationships(prev => prev.filter(rel => 
+        rel.fromTable !== tableToRemove.name && rel.toTable !== tableToRemove.name
+      ));
+    }
+    
+    // Close settings menu
+    setShowTableSettings(null);
+  };
+
+  const copyTable = (tableId: string) => {
+    const tableToCopy = tables.find(t => t.id === tableId);
+    if (tableToCopy) {
+      const newTable: TableNode = {
+        ...tableToCopy,
+        id: (Math.max(...tables.map(t => parseInt(t.id)), 0) + 1).toString(),
+        name: `${tableToCopy.name}_copy`,
+        x: tableToCopy.x + 50,
+        y: tableToCopy.y + 50,
+        expanded: false // Start copies as collapsed
+      };
+      setTables(prev => [...prev, newTable]);
+    }
+    
+    // Close settings menu
+    setShowTableSettings(null);
+  };
+
+  const generateSQL = () => {
+    if (tables.length === 0) return 'SELECT 1 as placeholder;';
+    
+    if (relationships.length === 0) {
+      // No joins, just select from first table
+      const firstTable = tables[0];
+      const columns = firstTable.columns.map(col => `${firstTable.name}.${col.name}`).join(',\n    ');
+      return `SELECT\n    ${columns}\nFROM ${firstTable.name};`;
+    }
+    
+    // Build SQL with joins
+    const mainTable = tables[0];
+    let sql = 'SELECT\n';
+    
+    // Add all columns from all tables
+    const allColumns = tables.flatMap(table => 
+      table.columns.map(col => `    ${table.name}.${col.name}`)
+    ).join(',\n');
+    
+    sql += allColumns + '\n';
+    sql += `FROM ${mainTable.name}`;
+    
+    // Add joins
+    relationships.forEach(rel => {
+      const joinType = rel.type.toUpperCase();
+      sql += `\n${joinType} JOIN ${rel.toTable}`;
+      
+      if (rel.conditions && rel.conditions.length > 0) {
+        const conditions = rel.conditions.map(cond => 
+          `${rel.fromTable}.${cond.leftColumn} ${cond.operator} ${rel.toTable}.${cond.rightColumn}`
+        ).join(' AND ');
+        sql += ` ON ${conditions}`;
+      } else {
+        sql += ` ON ${rel.fromTable}.${rel.fromColumn} = ${rel.toTable}.${rel.toColumn}`;
+      }
+    });
+    
+    sql += ';';
+    return sql;
   };
 
   // Sample data sources (in a real app, this would come from props or context)
@@ -375,12 +359,48 @@ export default function LogicalDataModel() {
         name: sourceTable.name,
         x: 200 + (tables.length * 50),
         y: 200 + (tables.length * 50),
-        expanded: true,
+        expanded: false, // New tables start collapsed
         columns: sourceTable.columns
       };
       setTables([...tables, newTable]);
-      setShowTableSelector(false);
     }
+  };
+
+  const addSelectedTables = () => {
+    const newTables: TableNode[] = [];
+    let currentTableCount = tables.length;
+    
+    selectedTablesForAdd.forEach((tableKey) => {
+      const [dataSourceId, tableId] = tableKey.split('|');
+      const dataSource = availableDataSources.find(ds => ds.id === dataSourceId);
+      const sourceTable = dataSource?.tables.find(t => t.id === tableId);
+      
+      if (sourceTable) {
+        const newTable: TableNode = {
+          id: (currentTableCount + 1).toString(),
+          name: sourceTable.name,
+          x: 200 + (currentTableCount * 80),
+          y: 200 + (Math.floor(currentTableCount / 3) * 150),
+          expanded: false,
+          columns: sourceTable.columns
+        };
+        newTables.push(newTable);
+        currentTableCount++;
+      }
+    });
+    
+    setTables(prev => [...prev, ...newTables]);
+    setSelectedTablesForAdd([]);
+    setShowTableSelector(false);
+  };
+
+  const toggleTableSelection = (dataSourceId: string, tableId: string) => {
+    const tableKey = `${dataSourceId}|${tableId}`;
+    setSelectedTablesForAdd(prev => 
+      prev.includes(tableKey) 
+        ? prev.filter(key => key !== tableKey)
+        : [...prev, tableKey]
+    );
   };
 
   const toggleTableExpansion = (tableId: string) => {
@@ -433,42 +453,178 @@ export default function LogicalDataModel() {
     const fromTable = tables.find(t => t.name === relationship.fromTable);
     const toTable = tables.find(t => t.name === relationship.toTable);
     
-    if (!fromTable || !toTable) return null;
+    if (!fromTable || !toTable) {
+      return null;
+    }
 
-    const fromColumnIndex = fromTable.columns.findIndex(c => c.name === relationship.fromColumn);
-    const toColumnIndex = toTable.columns.findIndex(c => c.name === relationship.toColumn);
+    // Calculate connection points based on table state (expanded or collapsed)
+    const fromTableHeight = fromTable.expanded ? 40 + (fromTable.columns.length * 28) : 80; // Header + columns or header + preview
+    const toTableHeight = toTable.expanded ? 40 + (toTable.columns.length * 28) : 80;
     
+    // For collapsed tables, connect to the center-right and center-left
     const fromX = fromTable.x + 280; // Right edge of table
-    const fromY = fromTable.y + 40 + (fromColumnIndex * 28) + 14; // Column center
+    const fromY = fromTable.expanded 
+      ? fromTable.y + 40 + (fromTable.columns.findIndex(c => c.name === relationship.fromColumn) * 28) + 14
+      : fromTable.y + fromTableHeight / 2; // Center of collapsed table
+      
     const toX = toTable.x; // Left edge of table
-    const toY = toTable.y + 40 + (toColumnIndex * 28) + 14; // Column center
+    const toY = toTable.expanded 
+      ? toTable.y + 40 + (toTable.columns.findIndex(c => c.name === relationship.toColumn) * 28) + 14
+      : toTable.y + toTableHeight / 2; // Center of collapsed table
 
     const midX = (fromX + toX) / 2;
+    const midY = (fromY + toY) / 2;
+    
+    // Generate tooltip content for join conditions
+    const joinConditionsText = relationship.conditions?.map(condition => 
+      `${relationship.fromTable}.${condition.leftColumn} ${condition.operator} ${relationship.toTable}.${condition.rightColumn}`
+    ).join(' AND ') || `${relationship.fromTable}.${relationship.fromColumn} = ${relationship.toTable}.${relationship.toColumn}`;
     
     return (
-      <g key={relationship.id} className="relationship-line">
+      <g key={relationship.id} className="relationship-line group">
+        {/* Main relationship path */}
         <path
           d={`M ${fromX} ${fromY} C ${midX} ${fromY} ${midX} ${toY} ${toX} ${toY}`}
           stroke="#3b82f6"
-          strokeWidth="2"
+          strokeWidth="3"
           fill="none"
-          className="hover:stroke-cyan-500 transition-colors"
+          className="hover:stroke-cyan-500 transition-all duration-200 cursor-pointer"
+          strokeDasharray="0"
         />
         
-        {/* Relationship label */}
-        <text
-          x={midX}
-          y={(fromY + toY) / 2 - 8}
-          textAnchor="middle"
-          className="text-xs fill-slate-600 font-medium"
-          style={{ fontSize: '10px' }}
+        {/* Hover area for better interaction */}
+        <path
+          d={`M ${fromX} ${fromY} C ${midX} ${fromY} ${midX} ${toY} ${toX} ${toY}`}
+          stroke="transparent"
+          strokeWidth="12"
+          fill="none"
+          className="cursor-pointer"
         >
-          {getJoinTypeIcon(relationship.type)} {getRelationshipIcon(relationship.joinType)}
-        </text>
+          <title>{`${relationship.name || 'Join'}\nType: ${relationship.type.toUpperCase()} JOIN\nCondition: ${joinConditionsText}`}</title>
+        </path>
         
-        {/* Connection points */}
-        <circle cx={fromX} cy={fromY} r="4" fill="#3b82f6" />
-        <circle cx={toX} cy={toY} r="4" fill="#3b82f6" />
+        {/* Lineage node in the middle */}
+        <g className="lineage-node">
+          {/* Node background - larger to accommodate more info */}
+          <rect
+            x={midX - 40}
+            y={midY - 20}
+            width="80"
+            height="40"
+            rx="8"
+            fill="white"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            className="group-hover:fill-cyan-50 group-hover:stroke-cyan-500 transition-all duration-200 cursor-pointer drop-shadow-lg"
+          />
+          
+          {/* Join type icon and text */}
+          <text
+            x={midX}
+            y={midY - 5}
+            textAnchor="middle"
+            className="text-xs fill-slate-700 font-bold pointer-events-none select-none"
+            style={{ fontSize: '10px' }}
+          >
+            {getJoinTypeIcon(relationship.type)} {relationship.type.toUpperCase()}
+          </text>
+          
+          {/* Join keys */}
+          <text
+            x={midX}
+            y={midY + 8}
+            textAnchor="middle"
+            className="text-xs fill-slate-600 pointer-events-none select-none"
+            style={{ fontSize: '8px' }}
+          >
+            {relationship.fromColumn} = {relationship.toColumn}
+          </text>
+          
+          {/* Enhanced hover tooltip */}
+          <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            {/* Tooltip background */}
+            <rect
+              x={midX - 140}
+              y={midY - 80}
+              width="280"
+              height="60"
+              rx="8"
+              fill="rgba(15, 23, 42, 0.95)"
+              stroke="rgba(148, 163, 184, 0.3)"
+              strokeWidth="1"
+              className="drop-shadow-xl"
+            />
+            
+            {/* Tooltip content */}
+            <text
+              x={midX}
+              y={midY - 60}
+              textAnchor="middle"
+              className="fill-white text-sm font-semibold"
+              style={{ fontSize: '12px' }}
+            >
+              {relationship.name || `${relationship.fromTable} → ${relationship.toTable}`}
+            </text>
+            <text
+              x={midX}
+              y={midY - 45}
+              textAnchor="middle"
+              className="fill-cyan-300 text-xs"
+              style={{ fontSize: '10px' }}
+            >
+              {relationship.type.toUpperCase()} JOIN • {getRelationshipIcon(relationship.joinType)}
+            </text>
+            <text
+              x={midX}
+              y={midY - 30}
+              textAnchor="middle"
+              className="fill-slate-300 text-xs"
+              style={{ fontSize: '9px' }}
+            >
+              {joinConditionsText}
+            </text>
+          </g>
+        </g>
+        
+        {/* Connection points with enhanced styling */}
+        <circle 
+          cx={fromX} 
+          cy={fromY} 
+          r="5" 
+          fill="#3b82f6" 
+          stroke="white" 
+          strokeWidth="2"
+          className="group-hover:fill-cyan-500 transition-colors duration-200 drop-shadow-sm"
+        />
+        <circle 
+          cx={toX} 
+          cy={toY} 
+          r="5" 
+          fill="#3b82f6" 
+          stroke="white" 
+          strokeWidth="2"
+          className="group-hover:fill-cyan-500 transition-colors duration-200 drop-shadow-sm"
+        />
+        
+        {/* Relationship cardinality indicators */}
+        <text
+          x={fromX - 15}
+          y={fromY - 8}
+          textAnchor="middle"
+          className="text-xs fill-slate-500 font-medium pointer-events-none"
+          style={{ fontSize: '9px' }}
+        >
+          {relationship.joinType === 'one-to-many' ? '1' : relationship.joinType === 'many-to-many' ? 'N' : '1'}
+        </text>
+        <text
+          x={toX + 15}
+          y={toY - 8}
+          textAnchor="middle"
+          className="text-xs fill-slate-500 font-medium pointer-events-none"
+          style={{ fontSize: '9px' }}
+        >
+          {relationship.joinType === 'one-to-many' ? 'N' : relationship.joinType === 'many-to-many' ? 'N' : '1'}
+        </text>
       </g>
     );
   };
@@ -500,7 +656,9 @@ export default function LogicalDataModel() {
               </button>
               <button 
                 onClick={() => setShowJoinBuilder(true)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+                disabled={tables.length < 2}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+                title={tables.length < 2 ? "Add at least 2 tables to create joins" : "Join tables"}
               >
                 <Link className="w-4 h-4 mr-2" />
                 Join Tables
@@ -570,12 +728,15 @@ export default function LogicalDataModel() {
         <svg
           ref={svgRef}
           className="absolute inset-0 pointer-events-none"
+          width="100%"
+          height="100%"
           style={{
             transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-            transformOrigin: '0 0'
+            transformOrigin: '0 0',
+            zIndex: 10
           }}
         >
-          {relationships.map(renderRelationshipLine)}
+           {relationships.map(renderRelationshipLine)}
         </svg>
 
         {/* Tables */}
@@ -603,11 +764,20 @@ export default function LogicalDataModel() {
               onMouseDown={(e) => handleTableMouseDown(e, table.id)}
             >
               {/* Table Header */}
-              <div className="p-3 border-b border-slate-200 bg-slate-50 rounded-t-lg">
+              <div className="p-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Table className="w-4 h-4 text-slate-600" />
-                    <span className="font-semibold text-slate-900">{table.name}</span>
+                    <div className="p-1.5 bg-white rounded-md shadow-sm">
+                      <Table className="w-4 h-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-900">{table.name}</span>
+                      {!table.expanded && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {table.columns.length} columns
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center space-x-1">
                     <button
@@ -615,24 +785,62 @@ export default function LogicalDataModel() {
                         e.stopPropagation();
                         toggleTableExpansion(table.id);
                       }}
-                      className="p-1 hover:bg-slate-200 rounded transition-colors"
+                      className="p-1.5 hover:bg-white hover:shadow-sm rounded-md transition-all duration-200 group"
+                      title={table.expanded ? 'Collapse table' : 'Expand table'}
                     >
                       {table.expanded ? (
-                        <ChevronDown className="w-4 h-4 text-slate-600" />
+                        <ChevronDown className="w-4 h-4 text-slate-600 group-hover:text-slate-800" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-800" />
                       )}
                     </button>
-                    <button className="p-1 hover:bg-slate-200 rounded transition-colors">
-                      <Settings className="w-4 h-4 text-slate-600" />
-                    </button>
+                    <div className="relative">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowTableSettings(showTableSettings === table.id ? null : table.id);
+                        }}
+                        className="p-1.5 hover:bg-white hover:shadow-sm rounded-md transition-all duration-200 group"
+                        title="Table settings"
+                      >
+                        <Settings className="w-4 h-4 text-slate-600 group-hover:text-slate-800" />
+                      </button>
+                      
+                      {/* Settings Dropdown */}
+                      {showTableSettings === table.id && (
+                        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyTable(table.id);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2 rounded-t-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Copy Table</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeTable(table.id);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 rounded-b-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Remove Table</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Table Columns */}
-              {table.expanded && (
-                <div className="max-h-64 overflow-y-auto">
+              {table.expanded ? (
+                <div className="max-h-64 overflow-y-auto scrollbar-thin">
                   {table.columns.map((column, index) => (
                     <div
                       key={index}
@@ -666,6 +874,37 @@ export default function LogicalDataModel() {
                     </div>
                   ))}
                 </div>
+              ) : (
+                /* Collapsed state - show key columns preview */
+                <div className="p-3 bg-slate-25">
+                  <div className="space-y-1.5">
+                    {table.columns
+                      .filter(col => col.primaryKey || col.foreignKey)
+                      .slice(0, 3)
+                      .map((column, index) => (
+                        <div key={index} className="flex items-center space-x-2 text-xs">
+                          {getDataTypeIcon(column.type)}
+                          <span className="text-slate-700 font-medium">{column.name}</span>
+                          {column.primaryKey && (
+                            <Key className="w-2.5 h-2.5 text-blue-600" />
+                          )}
+                          {column.foreignKey && (
+                            <ExternalLink className="w-2.5 h-2.5 text-purple-600" />
+                          )}
+                        </div>
+                      ))}
+                    {table.columns.filter(col => col.primaryKey || col.foreignKey).length > 3 && (
+                      <div className="text-xs text-slate-500 italic">
+                        +{table.columns.filter(col => col.primaryKey || col.foreignKey).length - 3} more key columns
+                      </div>
+                    )}
+                    {table.columns.filter(col => col.primaryKey || col.foreignKey).length === 0 && (
+                      <div className="text-xs text-slate-500 italic">
+                        Click to expand and view columns
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           ))}
@@ -674,18 +913,26 @@ export default function LogicalDataModel() {
         {/* Instructions */}
         {tables.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <Table className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-500 mb-2">No Tables Added</h3>
-              <p className="text-slate-400 text-sm mb-4">
-                Add tables to start building your logical data model
+            <div className="text-center max-w-md">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Table className="w-10 h-10 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-700 mb-3">Start Building Your Data Model</h3>
+              <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                Add tables from your data sources to create relationships and build a comprehensive logical data model. 
+                Once you have tables, you can join them together and preview the results.
               </p>
-              <button className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors">
-                Add Your First Table
+              <button 
+                onClick={() => setShowTableSelector(true)}
+                className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors font-medium flex items-center space-x-2 mx-auto"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Your First Table</span>
               </button>
             </div>
           </div>
         )}
+
 
         {/* Pending connection indicator */}
         {pendingConnection && (
@@ -807,6 +1054,9 @@ export default function LogicalDataModel() {
                         <option key={table.id} value={table.name}>{table.name}</option>
                       ))}
                     </select>
+                    {tables.length === 0 && (
+                      <p className="text-xs text-slate-500 mt-1">Add tables to the canvas first</p>
+                    )}
                   </div>
                   
                   <div>
@@ -821,6 +1071,9 @@ export default function LogicalDataModel() {
                         <option key={table.id} value={table.name}>{table.name}</option>
                       ))}
                     </select>
+                    {tables.length === 0 && (
+                      <p className="text-xs text-slate-500 mt-1">Add tables to the canvas first</p>
+                    )}
                   </div>
                   
                   <div>
@@ -968,18 +1221,36 @@ ${selectedJoinType.toUpperCase()} JOIN ${currentJoin.toTable} t2
               <button
                 disabled={!currentJoin.fromTable || !currentJoin.toTable}
                 onClick={() => {
+                  // Find primary key columns for default join if no conditions specified
+                  const fromTable = tables.find(t => t.name === currentJoin.fromTable);
+                  const toTable = tables.find(t => t.name === currentJoin.toTable);
+                  
+                  const fromPK = fromTable?.columns.find(c => c.primaryKey)?.name || 'id';
+                  const toPK = toTable?.columns.find(c => c.primaryKey)?.name || 'id';
+                  
+                  const defaultConditions = joinConditions.length > 0 ? joinConditions : [
+                    { 
+                      id: Date.now().toString(), 
+                      leftColumn: fromPK, 
+                      operator: '=' as '=' | '!=' | '<' | '>' | '<=' | '>=' | 'LIKE' | 'IN', 
+                      rightColumn: toPK 
+                    }
+                  ];
+                  
                   const newRelationship: Relationship = {
                     id: Date.now().toString(),
                     fromTable: currentJoin.fromTable!,
-                    fromColumn: joinConditions[0]?.leftColumn || 'id',
+                    fromColumn: defaultConditions[0].leftColumn,
                     toTable: currentJoin.toTable!,
-                    toColumn: joinConditions[0]?.rightColumn || 'id',
+                    toColumn: defaultConditions[0].rightColumn,
                     type: selectedJoinType,
                     joinType: 'one-to-many',
                     name: `${currentJoin.fromTable} → ${currentJoin.toTable}`,
-                    conditions: joinConditions
+                    conditions: defaultConditions
                   };
-                  setRelationships(prev => [...prev, newRelationship]);
+                  
+                   setRelationships(prev => [...prev, newRelationship]);
+                  
                   setShowJoinBuilder(false);
                   setCurrentJoin({});
                   setJoinConditions([]);
@@ -999,48 +1270,94 @@ ${selectedJoinType.toUpperCase()} JOIN ${currentJoin.toTable} t2
           <div className="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">Preview Output</h3>
-                <button
-                  onClick={() => setShowPreviewOutput(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Preview Output</h3>
+                  <p className="text-sm text-slate-600 mt-1">Preview the joined data from your logical model</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowSQL(!showSQL)}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span>{showSQL ? 'Hide SQL' : 'View SQL'}</span>
+                  </button>
+                  <button
+                    onClick={() => setShowPreviewOutput(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <p className="text-sm text-slate-600 mt-1">Preview the joined data from your logical model</p>
             </div>
             
             <div className="flex-1 overflow-auto p-6">
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto overflow-y-auto max-h-96">
-                  <table className="w-full">
-                    <thead className="bg-slate-50 sticky top-0">
-                      <tr>
-                        {/* Sample joined columns */}
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">customer_id</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">first_name</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">last_name</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">order_id</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">order_date</th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">total_amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Sample joined data */}
-                      {Array.from({ length: 10 }, (_, rowIndex) => (
-                        <tr key={rowIndex} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">1001</td>
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">John</td>
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">Doe</td>
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">{2001 + rowIndex}</td>
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">2024-01-{15 + rowIndex}</td>
-                          <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">${(Math.random() * 500 + 100).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {showSQL ? (
+                /* SQL View */
+                <div className="space-y-4">
+                  <div className="bg-slate-900 rounded-lg p-4 overflow-auto">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-slate-300">Generated SQL Query</h4>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(generateSQL());
+                          alert('SQL copied to clipboard!');
+                        }}
+                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-xs transition-colors"
+                      >
+                        Copy SQL
+                      </button>
+                    </div>
+                    <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap overflow-auto">
+                      {generateSQL()}
+                    </pre>
+                  </div>
+                  
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">Query Explanation</h4>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <div><strong>Tables:</strong> {tables.map(t => t.name).join(', ')}</div>
+                      <div><strong>Joins:</strong> {relationships.length} relationship{relationships.length !== 1 ? 's' : ''}</div>
+                      <div><strong>Columns:</strong> {tables.reduce((sum, t) => sum + t.columns.length, 0)} total columns selected</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Data Preview */
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto overflow-y-auto max-h-96">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 sticky top-0">
+                        <tr>
+                          {/* Sample joined columns */}
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">customer_id</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">first_name</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">last_name</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">order_id</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">order_date</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 border-b border-slate-200">total_amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Sample joined data */}
+                        {Array.from({ length: 10 }, (_, rowIndex) => (
+                          <tr key={rowIndex} className="hover:bg-slate-50">
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">1001</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">John</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">Doe</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">{2001 + rowIndex}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">2024-01-{15 + rowIndex}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600 border-b border-slate-100">${(Math.random() * 500 + 100).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               
               <div className="mt-4 p-4 bg-slate-50 rounded-lg">
                 <h5 className="text-sm font-medium text-slate-700 mb-2">Query Statistics</h5>
@@ -1059,6 +1376,28 @@ ${selectedJoinType.toUpperCase()} JOIN ${currentJoin.toTable} t2
                   </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Bottom Action Bar */}
+            <div className="p-6 border-t border-slate-200 flex justify-between items-center">
+              <button
+                onClick={() => setShowPreviewOutput(false)}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowPreviewOutput(false);
+                  // Navigate to View tab - in a real app this would use router
+                  window.location.hash = '#view';
+                  alert('Navigating to View tab...');
+                }}
+                className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span>Go to View</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -1180,33 +1519,50 @@ ${selectedJoinType.toUpperCase()} JOIN ${currentJoin.toTable} t2
                     
                     <div className="p-4">
                       <div className="grid grid-cols-1 gap-3">
-                        {dataSource.tables.map((table) => (
-                          <button
-                            key={table.id}
-                            onClick={() => addTableFromDataSource(dataSource.id, table.id)}
-                            className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:border-cyan-300 hover:bg-cyan-50 transition-colors text-left"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <Table className="w-4 h-4 text-slate-600" />
-                              <div>
-                                <div className="font-medium text-slate-900">{table.name}</div>
-                                <div className="text-xs text-slate-500">{table.columns.length} columns</div>
+                        {dataSource.tables.map((table) => {
+                          const tableKey = `${dataSource.id}|${table.id}`;
+                          const isSelected = selectedTablesForAdd.includes(tableKey);
+                          
+                          return (
+                            <div
+                              key={table.id}
+                              onClick={() => toggleTableSelection(dataSource.id, table.id)}
+                              className={`flex items-center justify-between p-3 border rounded-lg transition-colors text-left cursor-pointer ${
+                                isSelected 
+                                  ? 'border-cyan-500 bg-cyan-50 ring-2 ring-cyan-200' 
+                                  : 'border-slate-200 hover:border-cyan-300 hover:bg-cyan-50'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {}} // Handled by parent onClick
+                                    className="w-4 h-4 text-cyan-600 border-slate-300 rounded focus:ring-cyan-500"
+                                  />
+                                  <Table className="w-4 h-4 text-slate-600 ml-3" />
+                                </div>
+                                <div>
+                                  <div className="font-medium text-slate-900">{table.name}</div>
+                                  <div className="text-xs text-slate-500">{table.columns.length} columns</div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                {table.columns.slice(0, 3).map((column, index) => (
+                                  <div key={index} className="flex items-center space-x-1">
+                                    {getDataTypeIcon(column.type)}
+                                    <span className="text-xs text-slate-600">{column.name}</span>
+                                  </div>
+                                ))}
+                                {table.columns.length > 3 && (
+                                  <span className="text-xs text-slate-400">+{table.columns.length - 3} more</span>
+                                )}
                               </div>
                             </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              {table.columns.slice(0, 3).map((column, index) => (
-                                <div key={index} className="flex items-center space-x-1">
-                                  {getDataTypeIcon(column.type)}
-                                  <span className="text-xs text-slate-600">{column.name}</span>
-                                </div>
-                              ))}
-                              {table.columns.length > 3 && (
-                                <span className="text-xs text-slate-400">+{table.columns.length - 3} more</span>
-                              )}
-                            </div>
-                          </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1214,13 +1570,30 @@ ${selectedJoinType.toUpperCase()} JOIN ${currentJoin.toTable} t2
               </div>
             </div>
             
-            <div className="p-6 border-t border-slate-200 flex justify-end">
-              <button
-                onClick={() => setShowTableSelector(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
+            <div className="p-6 border-t border-slate-200 flex justify-between items-center">
+              <div className="text-sm text-slate-600">
+                {selectedTablesForAdd.length > 0 && (
+                  <span>{selectedTablesForAdd.length} table{selectedTablesForAdd.length !== 1 ? 's' : ''} selected</span>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setSelectedTablesForAdd([]);
+                    setShowTableSelector(false);
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addSelectedTables}
+                  disabled={selectedTablesForAdd.length === 0}
+                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  Add Selected Tables
+                </button>
+              </div>
             </div>
           </div>
         </div>

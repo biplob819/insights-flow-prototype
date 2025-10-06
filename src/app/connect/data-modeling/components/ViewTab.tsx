@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Filter, ArrowUpDown, Download, Calculator, Eye, Code, Search, ChevronDown, X, Hash, Type, Calendar, Layers, Group, Sigma, TrendingUp, SortAsc, SortDesc, GripVertical, Edit, Trash2, EyeOff, Info, Lock, Percent, DollarSign, FileText, Settings, BarChart3, Database, Play, Save, Users, Globe, Shield, Share } from 'lucide-react';
+import { Plus, Filter, ArrowUpDown, Download, Calculator, Eye, Code, Search, ChevronDown, ChevronRight, X, Hash, Type, Calendar, Layers, Group, Sigma, TrendingUp, SortAsc, SortDesc, GripVertical, Edit, Trash2, EyeOff, Info, Lock, Percent, DollarSign, FileText, Settings, BarChart3, Database, Play, Save, Users, Globe, Shield, Share, History, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Palette } from 'lucide-react';
 import { formatNumber, formatNumberWithDecimals } from '@/utils/formatters';
 import { getDataTypeIcon } from '../utils/dataTypeIcons';
 
@@ -69,7 +69,7 @@ export default function ViewTab() {
   const [currentFormula, setCurrentFormula] = useState('');
   const [showColumnMenu, setShowColumnMenu] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
-  const [groupedColumns, setGroupedColumns] = useState<string[]>([]);
+  const [groupedColumns, setGroupedColumns] = useState<string[]>(['1', '2']); // Store Region and Brand initially grouped
   const [showGroupingPanel, setShowGroupingPanel] = useState(false);
   const [formulaBarValue, setFormulaBarValue] = useState('');
   const [formulaSuggestions, setFormulaSuggestions] = useState<string[]>([]);
@@ -87,6 +87,10 @@ export default function ViewTab() {
   const [descriptionValue, setDescriptionValue] = useState('');
   const [showDateTruncateMenu, setShowDateTruncateMenu] = useState<string | null>(null);
   const [showFormatMenu, setShowFormatMenu] = useState<string | null>(null);
+  const [showColumnFilter, setShowColumnFilter] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{x: number, y: number}>({x: 0, y: 0});
+  const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null);
+  const [submenuPosition, setSubmenuPosition] = useState<{x: number, y: number}>({x: 0, y: 0});
   const [columnFormats, setColumnFormats] = useState<{[key: string]: {type: string; decimals?: number; currency?: string}}>({});
   const [showHiddenColumns, setShowHiddenColumns] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -98,9 +102,9 @@ export default function ViewTab() {
   const [formulaApplied, setFormulaApplied] = useState(false);
   const [viewStage, setViewStage] = useState<'Draft' | 'Published' | 'Deprecated'>('Draft');
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showStageModal, setShowStageModal] = useState(false);
+  const [showStageDropdown, setShowStageDropdown] = useState(false);
   const [showSQLModal, setShowSQLModal] = useState(false);
-  const [showLoadViewsModal, setShowLoadViewsModal] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showQueryInfo, setShowQueryInfo] = useState(false);
   const [queryInfo] = useState({
     requestId: 'g925c08f64c3e4034bde256d270b11b0a',
@@ -114,9 +118,80 @@ export default function ViewTab() {
   const [showSaveViewModal, setShowSaveViewModal] = useState(false);
   const [saveViewName, setSaveViewName] = useState('');
   const [isEditingViewName, setIsEditingViewName] = useState(false);
+  const [versionHistory, setVersionHistory] = useState([
+    { id: 1, version: 'v1.0', timestamp: '2024-01-15 10:30 AM', author: 'John Doe', description: 'Initial view creation' },
+    { id: 2, version: 'v1.1', timestamp: '2024-01-16 02:15 PM', author: 'Jane Smith', description: 'Added profit calculation column' },
+    { id: 3, version: 'v1.2', timestamp: '2024-01-17 09:45 AM', author: 'John Doe', description: 'Updated filters and grouping' }
+  ]);
+  const [draggedGroupColumn, setDraggedGroupColumn] = useState<string | null>(null);
+  
+  // Formatting options state
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [fontSize, setFontSize] = useState(12);
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('left');
+  const [textColor, setTextColor] = useState('#000000');
+  const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedCellRange, setSelectedCellRange] = useState<{startRow: number, endRow: number, startCol: number, endCol: number} | null>(null);
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowDateTruncateMenu(null);
+      setShowFormatMenu(null);
+      setShowColumnFilter(null);
+      setHoveredMenuItem(null);
+      setShowFontSizeDropdown(false);
+      setShowColorPicker(false);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+  const [showDateTruncateSubmenu, setShowDateTruncateSubmenu] = useState<string | null>(null);
+  const [showFormatSubmenu, setShowFormatSubmenu] = useState<string | null>(null);
 
   const tableRef = useRef<HTMLDivElement>(null);
   const formulaBarRef = useRef<HTMLInputElement>(null);
+  const stageDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close stage dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stageDropdownRef.current && !stageDropdownRef.current.contains(event.target as Node)) {
+        setShowStageDropdown(false);
+      }
+    };
+
+    if (showStageDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStageDropdown]);
+
+  // Close submenus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.relative')) {
+        setShowDateTruncateSubmenu(null);
+        setShowFormatSubmenu(null);
+      }
+    };
+
+    if (showDateTruncateSubmenu || showFormatSubmenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDateTruncateSubmenu, showFormatSubmenu]);
 
   const handleSaveView = () => {
     if (saveViewName.trim()) {
@@ -295,9 +370,15 @@ export default function ViewTab() {
     return processedRow;
   });
 
-  const handleCellClick = (rowIndex: number, colIndex: number) => {
-    setSelectedCell({ row: rowIndex, col: colIndex });
+  const handleCellClick = (rowIndex: number, colIndex: number, isShiftKey: boolean = false) => {
+    handleCellSelection(rowIndex, colIndex, isShiftKey);
     setEditingCell(null);
+    
+    // Add column reference to formula bar when cell is clicked
+    const column = columns.filter(col => col.visible)[colIndex];
+    if (column) {
+      handleColumnClick(column.name, 'Table');
+    }
   };
 
   const handleCellDoubleClick = (rowIndex: number, colIndex: number) => {
@@ -373,10 +454,10 @@ export default function ViewTab() {
       }
     });
     
-    // Column suggestions
+    // Column suggestions with Table/Column format
     columns.forEach(col => {
       if (col.name.toLowerCase().includes(lowerInput)) {
-        suggestions.push(`[${col.name}]`);
+        suggestions.push(`[Table/${col.name}]`);
       }
     });
     
@@ -398,6 +479,56 @@ export default function ViewTab() {
     } else {
       setShowSuggestions(false);
     }
+  };
+
+  const handleColumnClick = (columnName: string, tableName: string = 'Table') => {
+    const columnReference = `[${tableName}/${columnName}]`;
+    const currentValue = formulaBarValue;
+    const cursorPosition = formulaBarRef.current?.selectionStart || currentValue.length;
+    
+    // Insert the column reference at cursor position
+    const newValue = currentValue.slice(0, cursorPosition) + columnReference + currentValue.slice(cursorPosition);
+    setFormulaBarValue(newValue);
+    
+    // Focus back to formula bar and set cursor position
+    setTimeout(() => {
+      if (formulaBarRef.current) {
+        formulaBarRef.current.focus();
+        formulaBarRef.current.setSelectionRange(
+          cursorPosition + columnReference.length,
+          cursorPosition + columnReference.length
+        );
+      }
+    }, 0);
+  };
+
+  const handleCellSelection = (rowIndex: number, colIndex: number, isRangeSelection: boolean = false) => {
+    if (isRangeSelection && selectedCellRange) {
+      // Extend selection range
+      setSelectedCellRange({
+        startRow: Math.min(selectedCellRange.startRow, rowIndex),
+        endRow: Math.max(selectedCellRange.endRow, rowIndex),
+        startCol: Math.min(selectedCellRange.startCol, colIndex),
+        endCol: Math.max(selectedCellRange.endCol, colIndex)
+      });
+    } else {
+      // Single cell selection
+      setSelectedCell({ row: rowIndex, col: colIndex });
+      setSelectedCellRange({
+        startRow: rowIndex,
+        endRow: rowIndex,
+        startCol: colIndex,
+        endCol: colIndex
+      });
+    }
+  };
+
+  const isCellInSelection = (rowIndex: number, colIndex: number): boolean => {
+    if (!selectedCellRange) return false;
+    return rowIndex >= selectedCellRange.startRow && 
+           rowIndex <= selectedCellRange.endRow && 
+           colIndex >= selectedCellRange.startCol && 
+           colIndex <= selectedCellRange.endCol;
   };
 
   const applySuggestion = (suggestion: string) => {
@@ -454,12 +585,15 @@ export default function ViewTab() {
   };
 
   const handleColumnRightClick = (e: React.MouseEvent, columnId: string) => {
+    console.log('Right click detected on column:', columnId);
     e.preventDefault();
-    setContextMenu({
+    const menuPosition = {
       x: e.clientX,
       y: e.clientY,
       columnId
-    });
+    };
+    console.log('Setting context menu:', menuPosition);
+    setContextMenu(menuPosition);
   };
 
   const closeContextMenu = () => {
@@ -613,84 +747,28 @@ export default function ViewTab() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Editable View Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3">
-        <div className="flex items-center space-x-3">
-          {isEditingViewName ? (
-            <input
-              type="text"
-              value={currentViewName}
-              onChange={(e) => setCurrentViewName(e.target.value)}
-              onBlur={() => handleViewNameSave(currentViewName)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleViewNameSave(currentViewName);
-                }
-              }}
-              className="text-xl font-semibold text-slate-900 bg-transparent border-b-2 border-cyan-500 focus:outline-none"
-              autoFocus
-            />
-          ) : (
-            <h1 
-              onClick={handleViewNameEdit}
-              className="text-xl font-semibold text-slate-900 cursor-pointer hover:text-cyan-600 transition-colors"
-              title="Click to edit view name"
-            >
-              {currentViewName}
-            </h1>
-          )}
-          <button
-            onClick={handleViewNameEdit}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded"
-            title="Edit view name"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
 
-      {/* Toolbar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      {/* View Title Row */}
+      <div className="bg-white border-b border-slate-200 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            
-            <button 
-              onClick={addNewColumn}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Column
-            </button>
-            
-            <button 
-              onClick={() => setShowGroupingPanel(!showGroupingPanel)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-            >
-              <Group className="w-4 h-4 mr-2" />
-              Group By
-            </button>
-            
-            <button className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </button>
-            
-            <button 
-              onClick={handleExport}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </button>
-            
-            {columns.some(col => !col.visible) && (
-              <button 
-                onClick={() => setShowHiddenColumns(!showHiddenColumns)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+            {isEditingViewName ? (
+              <input
+                type="text"
+                value={currentViewName}
+                onChange={(e) => setCurrentViewName(e.target.value)}
+                onBlur={() => setIsEditingViewName(false)}
+                onKeyPress={(e) => e.key === 'Enter' && setIsEditingViewName(false)}
+                className="text-lg font-semibold text-slate-900 bg-transparent border-b border-slate-300 focus:border-cyan-500 outline-none"
+                autoFocus
+              />
+            ) : (
+              <h1 
+                onClick={() => setIsEditingViewName(true)}
+                className="text-lg font-semibold text-slate-900 cursor-pointer hover:text-cyan-600"
               >
-                <Eye className="w-4 h-4 mr-2" />
-                Show Hidden ({columns.filter(col => !col.visible).length})
-              </button>
+                {currentViewName}
+              </h1>
             )}
           </div>
           
@@ -705,21 +783,15 @@ export default function ViewTab() {
               <Info className="w-4 h-4 mr-2" />
               Query Info
             </button>
-            <span className="text-sm text-slate-600">{processedData.length} rows</span>
+            
             <button 
-              onClick={() => setShowJoinModal(true)}
+              onClick={() => setShowSQLModal(true)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
             >
-              <Layers className="w-4 h-4 mr-2" />
-              Join
+              <Code className="w-4 h-4 mr-2" />
+              View SQL
             </button>
-            <button 
-              onClick={() => setShowLoadViewsModal(true)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-            >
-              <Database className="w-4 h-4 mr-2" />
-              Load Views from dbt
-            </button>
+            
             <button 
               onClick={() => {
                 setShowRightPanel(true);
@@ -730,59 +802,249 @@ export default function ViewTab() {
               <Calculator className="w-4 h-4 mr-2" />
               Add Metric
             </button>
-            <button 
-              onClick={() => setShowSQLModal(true)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-            >
-              <Code className="w-4 h-4 mr-2" />
-              View SQL
-            </button>
-            <div className="flex items-center space-x-2">
+            
+            {/* Stage Dropdown */}
+            <div className="relative" ref={stageDropdownRef}>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-slate-500">Stage:</span>
                 <button
-                  onClick={() => setShowStageModal(true)}
-                  className={`px-2 py-1 text-xs font-medium rounded ${
+                  onClick={() => setShowStageDropdown(!showStageDropdown)}
+                  className={`px-2 py-1 text-xs font-medium rounded flex items-center ${
                     viewStage === 'Draft' ? 'bg-yellow-100 text-yellow-700' :
                     viewStage === 'Published' ? 'bg-green-100 text-green-700' :
                     'bg-red-100 text-red-700'
                   }`}
                 >
                   {viewStage}
+                  <ChevronDown className="w-3 h-3 ml-1" />
                 </button>
               </div>
-              <button 
-                onClick={() => setShowShareModal(true)}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
-              >
-                <Share className="w-4 h-4 mr-2" />
-                Share
-              </button>
-              <button 
-                onClick={() => {
-                  setSaveViewName(currentViewName);
-                  setShowSaveViewModal(true);
-                }}
-                className="px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save View
-              </button>
+              
+              {showStageDropdown && (
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setViewStage('Draft');
+                        setShowStageDropdown(false);
+                      }}
+                      className="w-full text-left p-3 hover:bg-slate-50 rounded-lg transition-colors"
+                    >
+                      <div className="font-medium text-slate-900">Draft</div>
+                      <div className="text-sm text-slate-600">Work in progress, not visible to others</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewStage('Published');
+                        setShowStageDropdown(false);
+                      }}
+                      className="w-full text-left p-3 hover:bg-slate-50 rounded-lg transition-colors"
+                    >
+                      <div className="font-medium text-slate-900">Published</div>
+                      <div className="text-sm text-slate-600">Live and available to users</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewStage('Deprecated');
+                        setShowStageDropdown(false);
+                      }}
+                      className="w-full text-left p-3 hover:bg-slate-50 rounded-lg transition-colors"
+                    >
+                      <div className="font-medium text-slate-900">Deprecated</div>
+                      <div className="text-sm text-slate-600">No longer maintained, will be removed</div>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+            
+            <button 
+              onClick={() => setShowShareModal(true)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+            >
+              <Share className="w-4 h-4 mr-2" />
+              Share
+            </button>
+            
+            <button 
+              onClick={() => setShowVersionHistory(true)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+              title="Version History"
+            >
+              <History className="w-4 h-4" />
+            </button>
+            
+            <button 
+              onClick={() => {
+                setSaveViewName(currentViewName);
+                setShowSaveViewModal(true);
+              }}
+              className="px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save View
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Excel-like Formula Bar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3">
+      {/* Toolbar */}
+      <div className="bg-white border-b border-slate-200 px-6 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            
+            <button 
+              onClick={addNewColumn}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Column
+            </button>
+            
+            {/* Group By Button - Clean without inline columns */}
+            <button 
+              onClick={() => setShowGroupingPanel(!showGroupingPanel)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+            >
+              <Group className="w-4 h-4 mr-2" />
+              Group By
+            </button>
+            
+            {columns.some(col => !col.visible) && (
+              <button 
+                onClick={() => setShowHiddenColumns(!showHiddenColumns)}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Show Hidden ({columns.filter(col => !col.visible).length})
+              </button>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-slate-600">{processedData.length} rows</span>
+            <button 
+              onClick={() => setShowJoinModal(true)}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium flex items-center"
+            >
+              <Layers className="w-4 h-4 mr-2" />
+              Join
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Excel-like Formula Bar with Formatting Options */}
+      <div className="bg-white border-b border-slate-200 px-6 py-2">
         <div className="flex items-center space-x-3">
+          {/* Formatting Options */}
+          <div className="flex items-center space-x-1 border-r border-slate-200 pr-3">
+            {/* Bold, Italic, Underline */}
+            <button
+              onClick={() => setIsBold(!isBold)}
+              className={`p-1.5 rounded hover:bg-slate-100 transition-colors ${
+                isBold ? 'bg-slate-200 text-slate-900' : 'text-slate-600'
+              }`}
+              title="Bold"
+            >
+              <Bold className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsItalic(!isItalic)}
+              className={`p-1.5 rounded hover:bg-slate-100 transition-colors ${
+                isItalic ? 'bg-slate-200 text-slate-900' : 'text-slate-600'
+              }`}
+              title="Italic"
+            >
+              <Italic className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsUnderline(!isUnderline)}
+              className={`p-1.5 rounded hover:bg-slate-100 transition-colors ${
+                isUnderline ? 'bg-slate-200 text-slate-900' : 'text-slate-600'
+              }`}
+              title="Underline"
+            >
+              <Underline className="w-4 h-4" />
+            </button>
+            
+            {/* Font Size */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFontSizeDropdown(!showFontSizeDropdown)}
+                className="px-2 py-1.5 text-xs border border-slate-300 rounded hover:bg-slate-50 transition-colors min-w-[40px] text-center"
+                title="Font Size"
+              >
+                {fontSize}
+              </button>
+              {showFontSizeDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[60px]">
+                  {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        setFontSize(size);
+                        setShowFontSizeDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 transition-colors"
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Text Alignment */}
+            <button
+              onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')}
+              className="p-1.5 rounded hover:bg-slate-100 transition-colors text-slate-600"
+              title={`Align ${textAlign}`}
+            >
+              {textAlign === 'left' && <AlignLeft className="w-4 h-4" />}
+              {textAlign === 'center' && <AlignCenter className="w-4 h-4" />}
+              {textAlign === 'right' && <AlignRight className="w-4 h-4" />}
+            </button>
+            
+            {/* Text Color */}
+            <div className="relative">
+              <button
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                className="p-1.5 rounded hover:bg-slate-100 transition-colors text-slate-600"
+                title="Text Color"
+              >
+                <Palette className="w-4 h-4" />
+              </button>
+              {showColorPicker && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 p-3">
+                  <div className="grid grid-cols-6 gap-1">
+                    {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000', '#FFC0CB', '#A52A2A'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          setTextColor(color);
+                          setShowColorPicker(false);
+                        }}
+                        className="w-6 h-6 rounded border border-slate-300 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Cell Reference */}
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-slate-700 w-16">
-              A1
+              {selectedCell ? `${String.fromCharCode(65 + selectedCell.col)}${selectedCell.row + 1}` : 'A1'}
             </span>
             <Calculator className="w-4 h-4 text-slate-500" />
           </div>
           
+          {/* Formula Input */}
           <div className="flex-1 relative">
             <input
               ref={formulaBarRef}
@@ -833,22 +1095,74 @@ export default function ViewTab() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-slate-700">Group by:</span>
+              
+              {/* Selected Group By Columns - Draggable Row */}
+              {groupedColumns.length > 0 && (
+                <div className="flex items-center space-x-1 bg-white rounded-lg p-2 border border-slate-200">
+                  <span className="text-xs text-slate-500 mr-2">Drag to reorder:</span>
+                  {groupedColumns.map((columnId, index) => {
+                    const column = columns.find(col => col.id === columnId);
+                    return (
+                      <div
+                        key={columnId}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedGroupColumn(columnId);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDragEnter={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedGroupColumn && draggedGroupColumn !== columnId) {
+                            const draggedIndex = groupedColumns.indexOf(draggedGroupColumn);
+                            const targetIndex = groupedColumns.indexOf(columnId);
+                            const newGroupedColumns = [...groupedColumns];
+                            newGroupedColumns.splice(draggedIndex, 1);
+                            newGroupedColumns.splice(targetIndex, 0, draggedGroupColumn);
+                            setGroupedColumns(newGroupedColumns);
+                          }
+                          setDraggedGroupColumn(null);
+                        }}
+                        className={`flex items-center space-x-1 px-2 py-1 bg-cyan-100 border border-cyan-300 rounded text-xs cursor-move hover:bg-cyan-200 transition-all ${
+                          draggedGroupColumn === columnId ? 'opacity-50 scale-95' : ''
+                        }`}
+                      >
+                        <GripVertical className="w-3 h-3 text-cyan-600" />
+                        {getDataTypeIcon(column?.type || 'Text')}
+                        <span className="text-cyan-700 font-medium">{column?.name}</span>
+                        <button
+                          onClick={() => {
+                            setGroupedColumns(prev => prev.filter(id => id !== columnId));
+                            setColumns(prev => prev.map(col => 
+                              col.id === columnId ? { ...col, grouped: false } : col
+                            ));
+                          }}
+                          className="text-cyan-600 hover:text-cyan-800"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Available Columns to Group By */}
               <div className="flex items-center space-x-2">
-                {columns.filter(col => col.visible && col.type !== 'formula').map((column) => (
+                {columns.filter(col => col.visible && col.type !== 'formula' && !groupedColumns.includes(col.id)).map((column) => (
                   <button
                     key={column.id}
                     onClick={() => {
-                      if (groupedColumns.includes(column.name)) {
-                        setGroupedColumns(prev => prev.filter(name => name !== column.name));
-                      } else {
-                        setGroupedColumns(prev => [...prev, column.name]);
-                      }
+                      setGroupedColumns(prev => [...prev, column.id]);
+                      setColumns(prev => prev.map(col => 
+                        col.id === column.id ? { ...col, grouped: true } : col
+                      ));
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
-                      groupedColumns.includes(column.name)
-                        ? 'bg-cyan-100 text-cyan-700 border border-cyan-300'
-                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-                    }`}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
                   >
                     {getDataTypeIcon(column.type)}
                     <span>{column.name}</span>
@@ -916,6 +1230,7 @@ export default function ViewTab() {
                   onMouseEnter={() => setHoveredColumn(column.id)}
                   onMouseLeave={() => setHoveredColumn(null)}
                   onClick={(e) => {
+                    e.stopPropagation();
                     if (e.ctrlKey || e.metaKey) {
                       // Multi-select with Ctrl/Cmd
                       setSelectedColumns(prev => 
@@ -926,9 +1241,11 @@ export default function ViewTab() {
                     } else {
                       // Single select
                       setSelectedColumns([column.id]);
+                      // Add column reference to formula bar
+                      handleColumnClick(column.name, 'Table');
                     }
                   }}
-                  className={`border border-slate-200 px-3 py-2 text-left text-sm font-medium text-slate-700 relative group cursor-pointer transition-all ${
+                  className={`border border-slate-200 px-2 py-1 text-left text-sm font-medium text-slate-700 relative group cursor-pointer transition-all ${
                     draggedColumn === column.id ? 'opacity-50' : ''
                   } ${
                     dragOverColumn === column.id ? 'bg-cyan-100 border-cyan-300' : ''
@@ -1003,7 +1320,7 @@ export default function ViewTab() {
                   
                   {/* Column Menu */}
                   {showColumnMenu === column.id && (
-                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-48">
+                    <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-48 max-h-80 overflow-y-auto">
                       <div className="p-2">
                         <button 
                           onClick={() => addColumnToLeft(column.id)}
@@ -1093,28 +1410,169 @@ export default function ViewTab() {
                         </button>
                         
                         {column.type === 'Date' && (
-                          <button 
-                            onClick={() => {
-                              setShowDateTruncateMenu(column.id);
-                              setShowColumnMenu(null);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
-                          >
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Truncate Date
-                          </button>
+                          <div className="relative">
+                            <button 
+                              onClick={() => {
+                                setShowDateTruncateSubmenu(showDateTruncateSubmenu === column.id ? null : column.id);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center justify-between"
+                            >
+                              <div className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Truncate Date
+                              </div>
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                            
+                            {showDateTruncateSubmenu === column.id && (
+                              <div className="absolute left-full top-0 ml-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-32">
+                                <div className="p-1">
+                                  {['Year', 'Quarter', 'Month', 'Week', 'Day'].map((period) => (
+                                    <button
+                                      key={period}
+                                      onClick={() => {
+                                        // Handle date truncation
+                                        console.log(`Truncate ${column.name} to ${period}`);
+                                        setShowDateTruncateSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded"
+                                    >
+                                      {period}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
                         
-                        <button 
-                          onClick={() => {
-                            setShowFormatMenu(column.id);
-                            setShowColumnMenu(null);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Format Column
-                        </button>
+                        <div className="relative">
+                          <button 
+                            onClick={() => {
+                              setShowFormatSubmenu(showFormatSubmenu === column.id ? null : column.id);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center justify-between"
+                          >
+                            <div className="flex items-center">
+                              <Settings className="w-4 h-4 mr-2" />
+                              Format Column
+                            </div>
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          
+                          {showFormatSubmenu === column.id && (
+                            <div className="absolute left-full top-0 ml-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-40">
+                              <div className="p-1">
+                                {column.type === 'Number' && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'currency', decimals: 2 }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
+                                    >
+                                      <DollarSign className="w-4 h-4 mr-2" />
+                                      Currency
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'percentage', decimals: 1 }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
+                                    >
+                                      <Percent className="w-4 h-4 mr-2" />
+                                      Percentage
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'decimal', decimals: 2 }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
+                                    >
+                                      <Hash className="w-4 h-4 mr-2" />
+                                      Number
+                                    </button>
+                                  </>
+                                )}
+                                {column.type === 'Text' && (
+                                  <button
+                                    onClick={() => {
+                                      setColumnFormats(prev => ({
+                                        ...prev,
+                                        [column.id]: { type: 'text' }
+                                      }));
+                                      setShowFormatSubmenu(null);
+                                      setShowColumnMenu(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded flex items-center"
+                                  >
+                                    <Type className="w-4 h-4 mr-2" />
+                                    Text
+                                  </button>
+                                )}
+                                {column.type === 'Date' && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'date', dateFormat: 'MM/DD/YYYY' }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded"
+                                    >
+                                      MM/DD/YYYY
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'date', dateFormat: 'DD/MM/YYYY' }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded"
+                                    >
+                                      DD/MM/YYYY
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setColumnFormats(prev => ({
+                                          ...prev,
+                                          [column.id]: { type: 'date', dateFormat: 'YYYY-MM-DD' }
+                                        }));
+                                        setShowFormatSubmenu(null);
+                                        setShowColumnMenu(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 rounded"
+                                    >
+                                      YYYY-MM-DD
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         
                         <hr className="my-2" />
                         
@@ -1190,12 +1648,14 @@ export default function ViewTab() {
                 {columns.filter(col => col.visible).map((column, colIndex) => (
                   <td
                     key={`${row.id}-${column.id}`}
-                    className={`border border-slate-200 px-3 py-2 text-sm cursor-cell ${
-                      selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                    className={`border border-slate-200 px-2 py-1 text-sm cursor-cell transition-colors ${
+                      isCellInSelection(rowIndex, colIndex)
                         ? 'bg-cyan-100 border-cyan-500'
-                        : ''
+                        : selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                        ? 'bg-cyan-200 border-cyan-600'
+                        : 'hover:bg-slate-50'
                     } ${frozenColumns.includes(column.id) ? 'sticky left-0 bg-white z-10' : ''}`}
-                    onClick={() => handleCellClick(rowIndex, colIndex)}
+                    onClick={(e) => handleCellClick(rowIndex, colIndex, e.shiftKey)}
                     onDoubleClick={() => handleCellDoubleClick(rowIndex, colIndex)}
                   >
                     {editingCell?.row === rowIndex && editingCell?.col === colIndex ? (
@@ -1588,83 +2048,6 @@ export default function ViewTab() {
         )}
       </div>
 
-      {/* Load Views from dbt Modal */}
-      {showLoadViewsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-3/4 flex flex-col">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">Load Views from dbt</h3>
-                <button
-                  onClick={() => setShowLoadViewsModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-sm text-slate-600 mt-1">Import views and models from your dbt project</p>
-            </div>
-            
-            <div className="flex-1 overflow-auto p-6">
-              <div className="space-y-4">
-                {/* dbt Connection Status */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-green-800">Connected to dbt Cloud</span>
-                  </div>
-                  <p className="text-sm text-green-600 mt-1">Project: analytics_project</p>
-                </div>
-                
-                {/* Available Views */}
-                <div>
-                  <h4 className="font-medium text-slate-900 mb-3">Available Views</h4>
-                  <div className="space-y-2">
-                    {[
-                      { name: 'customer_metrics', description: 'Customer analytics and KPIs', type: 'view' },
-                      { name: 'sales_summary', description: 'Daily sales aggregations', type: 'model' },
-                      { name: 'product_performance', description: 'Product sales and inventory metrics', type: 'view' },
-                      { name: 'monthly_revenue', description: 'Monthly revenue rollups', type: 'model' },
-                      { name: 'customer_cohorts', description: 'Customer cohort analysis', type: 'view' }
-                    ].map((view, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:border-cyan-300 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            view.type === 'view' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-                          }`}>
-                            {view.type === 'view' ? <Eye className="w-4 h-4" /> : <Database className="w-4 h-4" />}
-                          </div>
-                          <div>
-                            <h5 className="font-medium text-slate-900">{view.name}</h5>
-                            <p className="text-sm text-slate-600">{view.description}</p>
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium mt-1 ${
-                              view.type === 'view' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                            }`}>
-                              {view.type}
-                            </span>
-                          </div>
-                        </div>
-                        <button className="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-sm">
-                          Import
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-slate-200 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowLoadViewsModal(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Formula Builder Modal */}
       {showFormulaBuilder && (
@@ -1764,7 +2147,9 @@ export default function ViewTab() {
       )}
 
       {/* Enhanced Context Menu */}
-      {contextMenu && (
+      {contextMenu && (() => {
+        console.log('Rendering context menu at:', contextMenu);
+        return (
         <div
           className="fixed bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-2 min-w-48 backdrop-blur-sm"
           style={{
@@ -1792,8 +2177,12 @@ export default function ViewTab() {
           <hr className="my-2" />
           
           <button
-            onClick={() => {
-              setShowFiltersPanel(true);
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              setDropdownPosition({ x: rect.right + 10, y: rect.top });
+              setShowColumnFilter(contextMenu.columnId);
               closeContextMenu();
             }}
             className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center"
@@ -1870,31 +2259,66 @@ export default function ViewTab() {
             Freeze up to Column
           </button>
           
-          <button
-            onClick={() => {
+          <div
+            className="relative"
+            onMouseEnter={(e) => {
+              console.log('Truncate Date area hovered');
               const column = columns.find(col => col.id === contextMenu.columnId);
-              if (column && column.type === 'Date') {
-                setShowDateTruncateMenu(contextMenu.columnId);
+              console.log('Column found:', column);
+              if (column && (column.type === 'Date' || column.type.includes('Date'))) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                console.log('Container rect:', rect);
+                const newPosition = { x: rect.right + 5, y: rect.top };
+                console.log('Setting submenu position:', newPosition);
+                setSubmenuPosition(newPosition);
+                setHoveredMenuItem('truncate-date');
               }
-              closeContextMenu();
             }}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center"
-            disabled={!columns.find(col => col.id === contextMenu.columnId)?.type.includes('Date')}
+            onMouseLeave={() => {
+              console.log('Truncate Date area left');
+              setTimeout(() => {
+                setHoveredMenuItem(null);
+              }, 150);
+            }}
           >
-            <Calendar className="w-4 h-4 mr-3" />
-            Truncate Date
-          </button>
+            <button 
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center justify-between"
+              disabled={!columns.find(col => col.id === contextMenu.columnId)?.type.includes('Date')}
+            >
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-3" />
+                Truncate Date
+              </div>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
           
-          <button
-            onClick={() => {
-              setShowFormatMenu(contextMenu.columnId);
-              closeContextMenu();
+          <div
+            className="relative"
+            onMouseEnter={(e) => {
+              console.log('Format Column area hovered');
+              const rect = e.currentTarget.getBoundingClientRect();
+              console.log('Container rect:', rect);
+              const newPosition = { x: rect.right + 5, y: rect.top };
+              console.log('Setting submenu position:', newPosition);
+              setSubmenuPosition(newPosition);
+              setHoveredMenuItem('format-column');
             }}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center"
+            onMouseLeave={() => {
+              console.log('Format Column area left');
+              setTimeout(() => {
+                setHoveredMenuItem(null);
+              }, 150);
+            }}
           >
-            <Settings className="w-4 h-4 mr-3" />
-            Format Column
-          </button>
+            <button className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center justify-between">
+              <div className="flex items-center">
+                <Settings className="w-4 h-4 mr-3" />
+                Format Column
+              </div>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
           
           <button
             onClick={() => {
@@ -1910,14 +2334,177 @@ export default function ViewTab() {
           <hr className="my-2" />
           
           <button
-            onClick={() => deleteColumn(contextMenu.columnId)}
+            onClick={() => {
+              const column = columns.find(col => col.id === contextMenu.columnId);
+              if (column) {
+                const confirmed = window.confirm(`Are you sure you want to delete the column "${column.name}"? This action cannot be undone.`);
+                if (confirmed) {
+                  deleteColumn(contextMenu.columnId);
+                }
+              }
+              closeContextMenu();
+            }}
             className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 flex items-center text-red-600"
           >
             <Trash2 className="w-4 h-4 mr-3" />
             Delete Column
           </button>
         </div>
-      )}
+        );
+      })()}
+
+
+      {/* Format Submenu */}
+      {hoveredMenuItem === 'format-column' && contextMenu && (() => {
+        console.log('Rendering Format Submenu', { hoveredMenuItem, contextMenu, submenuPosition });
+        const column = columns.find(col => col.id === contextMenu.columnId);
+        if (!column) return null;
+        
+        return (
+          <div
+            data-submenu="format-column"
+            className="fixed bg-white border border-slate-200 rounded-lg shadow-lg z-[60] py-1 min-w-48 backdrop-blur-sm"
+            style={{
+              left: submenuPosition.x,
+              top: submenuPosition.y,
+            }}
+            onMouseEnter={() => {
+              console.log('Format submenu entered');
+              setHoveredMenuItem('format-column');
+            }}
+            onMouseLeave={() => {
+              console.log('Format submenu left');
+              setHoveredMenuItem(null);
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => {
+                setColumnFormats(prev => ({
+                  ...prev,
+                  [column.id]: { type: 'currency', currency: 'USD', decimals: 2 }
+                }));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <DollarSign className="w-4 h-4 mr-3" />
+              Currency ($)
+            </button>
+            <button 
+              onClick={() => {
+                setColumnFormats(prev => ({
+                  ...prev,
+                  [column.id]: { type: 'percentage', decimals: 1 }
+                }));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <Percent className="w-4 h-4 mr-3" />
+              Percentage (%)
+            </button>
+            <button 
+              onClick={() => {
+                setColumnFormats(prev => ({
+                  ...prev,
+                  [column.id]: { type: 'decimal', decimals: 2 }
+                }));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <Hash className="w-4 h-4 mr-3" />
+              Number (.00)
+            </button>
+            <button 
+              onClick={() => {
+                setColumnFormats(prev => ({
+                  ...prev,
+                  [column.id]: { type: 'decimal', decimals: 0 }
+                }));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <Hash className="w-4 h-4 mr-3" />
+              Number (123)
+            </button>
+            <button 
+              onClick={() => {
+                setColumns(prev => prev.map(col => 
+                  col.id === column.id ? { ...col, type: 'Text' } : col
+                ));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <Type className="w-4 h-4 mr-3" />
+              Text (abc)
+            </button>
+            <button 
+              onClick={() => {
+                setColumns(prev => prev.map(col => 
+                  col.id === column.id ? { ...col, type: 'Date' } : col
+                ));
+                setHoveredMenuItem(null);
+                closeContextMenu();
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors flex items-center"
+            >
+              <Calendar className="w-4 h-4 mr-3" />
+              Date
+            </button>
+          </div>
+        );
+      })()}
+
+      {/* Truncate Date Submenu */}
+      {hoveredMenuItem === 'truncate-date' && contextMenu && (() => {
+        console.log('Rendering Truncate Date Submenu', { hoveredMenuItem, contextMenu, submenuPosition });
+        const column = columns.find(col => col.id === contextMenu.columnId);
+        if (!column || column.type !== 'Date') return null;
+        
+        return (
+          <div
+            data-submenu="truncate-date"
+            className="fixed bg-white border border-slate-200 rounded-lg shadow-lg z-[60] py-1 min-w-48 backdrop-blur-sm"
+            style={{
+              left: submenuPosition.x,
+              top: submenuPosition.y,
+            }}
+            onMouseEnter={() => {
+              console.log('Truncate submenu entered');
+              setHoveredMenuItem('truncate-date');
+            }}
+            onMouseLeave={() => {
+              console.log('Truncate submenu left');
+              setHoveredMenuItem(null);
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {['Year', 'Quarter', 'Month', 'Week', 'Day', 'Hour', 'Minute', 'Second'].map((period) => (
+              <button
+                key={period}
+                onClick={() => {
+                  // Apply date truncation logic here
+                  console.log(`Truncating ${column.name} to ${period}`);
+                  setHoveredMenuItem(null);
+                  closeContextMenu();
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition-colors"
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Column Details Modal */}
       {showColumnDetails && (() => {
@@ -2094,197 +2681,84 @@ export default function ViewTab() {
         );
       })()}
 
-      {/* Date Truncate Menu */}
-      {showDateTruncateMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-96 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Truncate Date</h3>
-              <button
-                onClick={() => setShowDateTruncateMenu(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-2">
-              {['Year', 'Quarter', 'Month', 'Week', 'Day', 'Hour', 'Minute', 'Second'].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => {
-                    // Apply date truncation logic here
-                    setShowDateTruncateMenu(null);
-                  }}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Format Menu */}
-      {showFormatMenu && (() => {
-        const column = columns.find(col => col.id === showFormatMenu);
+
+      {/* Column-Specific Filter Dropdown */}
+      {showColumnFilter && (() => {
+        const column = columns.find(col => col.id === showColumnFilter);
         if (!column) return null;
         
+        // Get unique values for this column
+        const columnData = processedData.map(row => row[column.name]).filter(val => val !== null && val !== undefined);
+        const uniqueValues = Array.from(new Set(columnData)).slice(0, 10); // Show top 10 values
+        
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-96 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Format Column</h3>
-                <button
-                  onClick={() => setShowFormatMenu(null)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+          <div
+            className="fixed bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-2 min-w-64 max-w-80 backdrop-blur-sm"
+            style={{
+              left: dropdownPosition.x,
+              top: dropdownPosition.y,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-2 border-b border-slate-200">
+              <div className="flex items-center space-x-2">
+                {getDataTypeIcon(column.type)}
+                <h3 className="text-sm font-semibold text-slate-900">Filter: {column.name}</h3>
+              </div>
+            </div>
+            
+            <div className="p-3">
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Search values..."
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                />
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Format Type</label>
-                  <div className="space-y-2">
-                    <button 
-                      onClick={() => {
-                        setColumnFormats(prev => ({
-                          ...prev,
-                          [column.id]: { type: 'currency', currency: 'USD', decimals: 2 }
-                        }));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <DollarSign className="w-4 h-4 mr-3" />
-                      Currency ($)
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setColumnFormats(prev => ({
-                          ...prev,
-                          [column.id]: { type: 'percentage', decimals: 1 }
-                        }));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <Percent className="w-4 h-4 mr-3" />
-                      Percentage (%)
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setColumnFormats(prev => ({
-                          ...prev,
-                          [column.id]: { type: 'decimal', decimals: 2 }
-                        }));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <Hash className="w-4 h-4 mr-3" />
-                      Number (.00)
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setColumnFormats(prev => ({
-                          ...prev,
-                          [column.id]: { type: 'decimal', decimals: 0 }
-                        }));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <Hash className="w-4 h-4 mr-3" />
-                      Number (123)
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setColumns(prev => prev.map(col => 
-                          col.id === column.id ? { ...col, type: 'Text' } : col
-                        ));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <Type className="w-4 h-4 mr-3" />
-                      Text (abc)
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setColumns(prev => prev.map(col => 
-                          col.id === column.id ? { ...col, type: 'Date' } : col
-                        ));
-                        setShowFormatMenu(null);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-slate-100 rounded-lg transition-colors flex items-center"
-                    >
-                      <Calendar className="w-4 h-4 mr-3" />
-                      Date
-                    </button>
-                  </div>
-                </div>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                <label className="flex items-center space-x-2 text-sm p-2 hover:bg-slate-50 rounded">
+                  <input type="checkbox" className="rounded" defaultChecked />
+                  <span className="font-medium">All</span>
+                  <span className="text-slate-500 ml-auto">{columnData.length}</span>
+                </label>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Decimal Places</label>
-                  <select 
-                    onChange={(e) => {
-                      const decimals = parseInt(e.target.value);
-                      setColumnFormats(prev => ({
-                        ...prev,
-                        [column.id]: { 
-                          ...prev[column.id], 
-                          decimals 
-                        }
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  >
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                  </select>
-                </div>
+                {uniqueValues.map((value, index) => {
+                  const count = columnData.filter(v => v === value).length;
+                  return (
+                    <label key={index} className="flex items-center space-x-2 text-sm p-2 hover:bg-slate-50 rounded">
+                      <input type="checkbox" className="rounded" defaultChecked />
+                      <span>{String(value)}</span>
+                      <span className="text-slate-500 ml-auto">{count}</span>
+                    </label>
+                  );
+                })}
                 
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <h5 className="text-sm font-medium text-slate-700 mb-1">Preview</h5>
-                  <div className="text-sm text-slate-600">
-                    {(() => {
-                      const format = columnFormats[column.id];
-                      const sampleValue = 1234.567;
-                      
-                      if (format?.type === 'currency') {
-                        return `$${sampleValue.toFixed(format.decimals || 2)}`;
-                      } else if (format?.type === 'percentage') {
-                        return `${(sampleValue / 100).toFixed(format.decimals || 1)}%`;
-                      } else if (format?.type === 'decimal') {
-                        return sampleValue.toFixed(format.decimals || 2);
-                      } else {
-                        return sampleValue.toString();
-                      }
-                    })()}
+                {uniqueValues.length === 10 && (
+                  <div className="text-xs text-slate-500 p-2 text-center">
+                    Showing top 10 values...
                   </div>
-                </div>
+                )}
               </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowFormatMenu(null)}
-                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => setShowFormatMenu(null)}
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
-                >
-                  Apply
-                </button>
-              </div>
+            </div>
+            
+            <div className="px-3 pb-3 pt-2 border-t border-slate-200 flex justify-end space-x-2">
+              <button
+                onClick={() => setShowColumnFilter(null)}
+                className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Apply filter logic here
+                  setShowColumnFilter(null);
+                }}
+                className="px-3 py-1.5 text-xs bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors"
+              >
+                Apply
+              </button>
             </div>
           </div>
         );
@@ -2751,69 +3225,92 @@ export default function ViewTab() {
         </div>
       )}
 
-      {/* Stage Modal */}
-      {showStageModal && (
+      {/* Version History Modal */}
+      {showVersionHistory && (
         <div className="fixed inset-0 backdrop-blur-md bg-slate-900/10 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-96 max-w-md mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Change View Stage</h3>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="stage" 
-                    value="Draft" 
-                    checked={viewStage === 'Draft'}
-                    onChange={(e) => setViewStage(e.target.value as 'Draft' | 'Published' | 'Deprecated')}
-                    className="text-cyan-600" 
-                  />
-                  <div>
-                    <div className="font-medium text-slate-900">Draft</div>
-                    <div className="text-sm text-slate-600">Work in progress, not visible to others</div>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <History className="w-5 h-5 text-cyan-600" />
+                  <h3 className="text-lg font-semibold text-slate-900">Version History</h3>
+                </div>
+                <button
+                  onClick={() => setShowVersionHistory(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 mt-1">View history for: {currentViewName}</p>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-96">
+              <div className="space-y-4">
+                {versionHistory.map((version, index) => (
+                  <div key={version.id} className="flex items-start space-x-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium text-cyan-700">{version.version}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-slate-900">{version.version}</h4>
+                        <span className="text-xs text-slate-500">{version.timestamp}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">{version.description}</p>
+                      <p className="text-xs text-slate-500 mt-1">by {version.author}</p>
+                    </div>
+                    <div className="flex-shrink-0 flex space-x-2">
+                      <button
+                        onClick={() => {
+                          // Add version restore functionality
+                          alert(`Restoring to ${version.version}`);
+                          setShowVersionHistory(false);
+                        }}
+                        className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Add version compare functionality
+                          alert(`Comparing with ${version.version}`);
+                        }}
+                        className="px-3 py-1 text-xs bg-cyan-100 hover:bg-cyan-200 text-cyan-700 rounded transition-colors"
+                      >
+                        Compare
+                      </button>
+                    </div>
                   </div>
-                </label>
-                <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="stage" 
-                    value="Published" 
-                    checked={viewStage === 'Published'}
-                    onChange={(e) => setViewStage(e.target.value as 'Draft' | 'Published' | 'Deprecated')}
-                    className="text-cyan-600" 
-                  />
-                  <div>
-                    <div className="font-medium text-slate-900">Published</div>
-                    <div className="text-sm text-slate-600">Live and available to users</div>
-                  </div>
-                </label>
-                <label className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="stage" 
-                    value="Deprecated" 
-                    checked={viewStage === 'Deprecated'}
-                    onChange={(e) => setViewStage(e.target.value as 'Draft' | 'Published' | 'Deprecated')}
-                    className="text-cyan-600" 
-                  />
-                  <div>
-                    <div className="font-medium text-slate-900">Deprecated</div>
-                    <div className="text-sm text-slate-600">No longer maintained, will be removed</div>
-                  </div>
-                </label>
+                ))}
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-slate-200 flex justify-end space-x-3">
+            
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-between">
               <button
-                onClick={() => setShowStageModal(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                onClick={() => {
+                  // Add new version functionality
+                  const newVersion = {
+                    id: versionHistory.length + 1,
+                    version: `v1.${versionHistory.length}`,
+                    timestamp: new Date().toLocaleString(),
+                    author: 'Current User',
+                    description: 'Manual version save'
+                  };
+                  setVersionHistory(prev => [newVersion, ...prev]);
+                  alert('New version created');
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
               >
-                Cancel
+                Create New Version
               </button>
-              <button 
-                onClick={() => setShowStageModal(false)}
+              <button
+                onClick={() => setShowVersionHistory(false)}
                 className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
               >
-                Update Stage
+                Close
               </button>
             </div>
           </div>
