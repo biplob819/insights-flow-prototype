@@ -349,9 +349,9 @@ export default function LogicalDataModel() {
     }
   ];
 
-  const addTableFromDataSource = (dataSourceId: string, tableId: string) => {
-    const dataSource = availableDataSources.find(ds => ds.id === dataSourceId);
-    const sourceTable = dataSource?.tables.find(t => t.id === tableId);
+  const addTableFromDataSource = (_dataSourceId: string, _tableId: string) => {
+    const dataSource = availableDataSources.find(ds => ds.id === _dataSourceId);
+    const sourceTable = dataSource?.tables.find(t => t.id === _tableId);
     
     if (sourceTable) {
       const newTable: TableNode = {

@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com',
+  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://insights-flow.vercel.app',
   generateRobotsTxt: true,
   exclude: ['/api/*', '/admin/*', '/dashboard/create'],
   robotsTxtOptions: {
@@ -12,7 +12,7 @@ module.exports = {
       },
     ],
     additionalSitemaps: [
-      'https://your-domain.com/sitemap.xml',
+      'https://insights-flow.vercel.app/sitemap.xml',
     ],
   },
   transform: async (config, path) => {

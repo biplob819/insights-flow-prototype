@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { WidgetConfig } from './types';
-import { Grip, Trash2, MoreVertical, Info, Copy, MessageSquare, Download, Share2, Settings } from 'lucide-react';
+import { Grip, Trash2, MoreVertical, Copy, MessageSquare, Download, Share2, Settings } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
-  BarChart, 
-  Bar, 
   PieChart, 
   Pie, 
   AreaChart,

@@ -69,7 +69,7 @@ export default function ControlWidget({
   if (!controlElement) {
     return (
       <div className="p-4 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
-        <p className="text-gray-500 text-sm">Control type "{controlType}" not implemented</p>
+        <p className="text-gray-500 text-sm">Control type &quot;{controlType}&quot; not implemented</p>
       </div>
     );
   }

@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
   // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   
   // Security headers
@@ -61,7 +69,7 @@ const nextConfig: NextConfig = {
   
   // ESLint configuration
   eslint: {
-    // Fail build on ESLint errors in production
+    // Allow warnings but fail on errors in production
     ignoreDuringBuilds: false,
   },
   
@@ -109,6 +117,28 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+
+  // Redirects for better SEO and UX
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/dashboard',
+        destination: '/dashboard/create',
+        permanent: false,
+      },
+    ];
+  },
+
+  // Environment variables validation
+  env: {
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
   },
 };
 

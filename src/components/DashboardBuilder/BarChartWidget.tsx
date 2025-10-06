@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -14,24 +14,24 @@ import {
   Legend,
   LabelList
 } from 'recharts';
-import { 
-  Settings, 
-  Palette, 
-  BarChart3, 
-  Layers, 
-  Filter,
-  Eye,
-  EyeOff,
-  Plus,
-  Minus,
-  RotateCcw,
-  TrendingUp,
-  Info,
-  ChevronDown,
-  ChevronRight,
-  X
-} from 'lucide-react';
-import { availableDatasets, getDataForChart } from './sampleData';
+// import { 
+//   Settings, 
+//   Palette, 
+//   BarChart3, 
+//   Layers, 
+//   Filter,
+//   Eye,
+//   EyeOff,
+//   Plus,
+//   Minus,
+//   RotateCcw,
+//   TrendingUp,
+//   Info,
+//   ChevronDown,
+//   ChevronRight,
+//   X
+// } from 'lucide-react';
+import { getDataForChart } from './sampleData';
 
 // Types for bar chart configuration
 interface BarChartConfig {
@@ -146,16 +146,16 @@ export default function BarChartWidget({
   config = defaultConfig, 
   data = sampleData, 
   onConfigChange, 
-  isConfiguring = false,
-  availableColumns = [
+  isConfiguring: _isConfiguring = false,
+  availableColumns: _availableColumns = [
     { name: 'category', type: 'string' },
     { name: 'revenue', type: 'number' },
     { name: 'pipeline', type: 'number' },
     { name: 'region', type: 'string' }
   ],
-  title = 'Bar Chart',
-  onTitleChange,
-  showHeader = true,
+  title: _title = 'Bar Chart',
+  onTitleChange: _onTitleChange,
+  showHeader: _showHeader = true,
   chartTitle,
   chartDescription,
   showChartTitle = false,
@@ -169,7 +169,7 @@ export default function BarChartWidget({
   showChartTitle?: boolean;
   showChartDescription?: boolean;
 }) {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [_isEditingTitle, _setIsEditingTitle] = useState(false);
   
   // Use config directly instead of local state to ensure real-time updates
   const localConfig = { ...defaultConfig, ...config };
@@ -179,7 +179,7 @@ export default function BarChartWidget({
   const isDataLimitExceeded = dataPointCount > 25000;
   const displayData = isDataLimitExceeded ? data.slice(0, 25000) : data;
 
-  const handleConfigChange = (newConfig: Partial<BarChartConfig>) => {
+  const _handleConfigChange = (newConfig: Partial<BarChartConfig>) => {
     const updatedConfig = { ...localConfig, ...newConfig };
     onConfigChange(updatedConfig);
   };
@@ -212,7 +212,7 @@ export default function BarChartWidget({
   };
 
   // Get bar color based on configuration
-  const getBarColor = (dataKey: string, index: number, value?: number) => {
+  const getBarColor = (dataKey: string, index: number, _value?: number) => {
     switch (localConfig.colorMode) {
       case 'category':
         return localConfig.categoryColors[index % localConfig.categoryColors.length];
@@ -225,7 +225,7 @@ export default function BarChartWidget({
   };
 
   // Apply conditional formatting
-  const applyConditionalFormatting = (value: number, dataKey: string) => {
+  const _applyConditionalFormatting = (value: number, dataKey: string) => {
     const applicableRules = localConfig.conditionalRules.filter(rule => 
       rule.enabled && rule.column === dataKey
     );

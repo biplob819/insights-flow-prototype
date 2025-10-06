@@ -121,7 +121,7 @@ export default function DrillDownControl({
         {/* End of hierarchy message */}
         {!currentHierarchy && drillPath.length > 0 && (
           <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-            <p>You've reached the end of the drill-down hierarchy.</p>
+            <p>You&apos;ve reached the end of the drill-down hierarchy.</p>
             <button
               type="button"
               onClick={handleReset}

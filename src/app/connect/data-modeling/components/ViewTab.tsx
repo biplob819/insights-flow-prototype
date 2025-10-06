@@ -85,8 +85,8 @@ export default function ViewTab() {
   const [columnDescriptions, setColumnDescriptions] = useState<{[key: string]: string}>({});
   const [showDescriptionEdit, setShowDescriptionEdit] = useState<string | null>(null);
   const [descriptionValue, setDescriptionValue] = useState('');
-  const [showDateTruncateMenu, setShowDateTruncateMenu] = useState<string | null>(null);
-  const [showFormatMenu, setShowFormatMenu] = useState<string | null>(null);
+  const [_showDateTruncateMenu, _setShowDateTruncateMenu] = useState<string | null>(null);
+  const [_showFormatMenu, _setShowFormatMenu] = useState<string | null>(null);
   const [showColumnFilter, setShowColumnFilter] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{x: number, y: number}>({x: 0, y: 0});
   const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null);
@@ -131,7 +131,7 @@ export default function ViewTab() {
   const [isUnderline, setIsUnderline] = useState(false);
   const [fontSize, setFontSize] = useState(12);
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('left');
-  const [textColor, setTextColor] = useState('#000000');
+  const [_textColor, _setTextColor] = useState('#000000');
   const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [selectedCellRange, setSelectedCellRange] = useState<{startRow: number, endRow: number, startCol: number, endCol: number} | null>(null);
@@ -139,8 +139,8 @@ export default function ViewTab() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
-      setShowDateTruncateMenu(null);
-      setShowFormatMenu(null);
+      _setShowDateTruncateMenu(null);
+      _setShowFormatMenu(null);
       setShowColumnFilter(null);
       setHoveredMenuItem(null);
       setShowFontSizeDropdown(false);
@@ -204,11 +204,11 @@ export default function ViewTab() {
     }
   };
 
-  const handleViewNameEdit = () => {
+  const _handleViewNameEdit = () => {
     setIsEditingViewName(true);
   };
 
-  const handleViewNameSave = (newName: string) => {
+  const _handleViewNameSave = (newName: string) => {
     if (newName.trim()) {
       setCurrentViewName(newName.trim());
     }
@@ -562,7 +562,7 @@ export default function ViewTab() {
     );
   };
 
-  const handleExport = () => {
+  const _handleExport = () => {
     const csvContent = [
       // Header row
       columns.filter(col => col.visible).map(col => col.name).join(','),
@@ -1022,7 +1022,7 @@ export default function ViewTab() {
                       <button
                         key={color}
                         onClick={() => {
-                          setTextColor(color);
+                          _setTextColor(color);
                           setShowColorPicker(false);
                         }}
                         className="w-6 h-6 rounded border border-slate-300 hover:scale-110 transition-transform"
@@ -1100,7 +1100,7 @@ export default function ViewTab() {
               {groupedColumns.length > 0 && (
                 <div className="flex items-center space-x-1 bg-white rounded-lg p-2 border border-slate-200">
                   <span className="text-xs text-slate-500 mr-2">Drag to reorder:</span>
-                  {groupedColumns.map((columnId, index) => {
+                  {groupedColumns.map((columnId, _index) => {
                     const column = columns.find(col => col.id === columnId);
                     return (
                       <div
@@ -3247,7 +3247,7 @@ export default function ViewTab() {
             
             <div className="p-6 overflow-y-auto max-h-96">
               <div className="space-y-4">
-                {versionHistory.map((version, index) => (
+                {versionHistory.map((version, _index) => (
                   <div key={version.id} className="flex items-start space-x-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center">

@@ -15,7 +15,7 @@ import {
   MessageCircle,
   Users,
   Search,
-  Filter,
+  // Filter,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -161,7 +161,7 @@ export default function ChatPanel({
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [_editingComment, _setEditingComment] = useState<string | null>(null);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -467,7 +467,7 @@ export default function ChatPanel({
               {comment.author.id === currentUser.id && (
                 <>
                   <button
-                    onClick={() => setEditingComment(comment.id)}
+                    onClick={() => _setEditingComment(comment.id)}
                     className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700"
                   >
                     <Edit3 className="w-3 h-3" />
@@ -559,7 +559,7 @@ export default function ChatPanel({
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setFilterBy(key as any)}
+              onClick={() => setFilterBy(key as 'all' | 'widget' | 'mentions' | 'pinned')}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 filterBy === key
                   ? 'bg-cyan-100 text-cyan-700'

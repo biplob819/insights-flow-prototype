@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm ci",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm ci --only=production",
   "regions": ["iad1"],
   "functions": {
     "app/**/*.tsx": {
@@ -11,6 +11,7 @@
       "maxDuration": 30
     }
   },
+  "crons": [],
   "headers": [
     {
       "source": "/(.*)",
@@ -52,6 +53,18 @@
       "source": "/api/:path*",
       "destination": "/api/:path*"
     }
-  ]
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "github": {
+    "enabled": false
+  }
 }
 
